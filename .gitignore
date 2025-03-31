@@ -1,0 +1,21 @@
+# Build directories
+build/
+*.tga
+
+# IDE files
+.vscode/
+*.sln
+*.vcxproj*
+*.filters
+*.user
+
+# Compiled binaries
+*.exe
+*.obj
+*.pdb
+*.ilk
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
