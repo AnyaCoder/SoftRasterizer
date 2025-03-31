@@ -12,5 +12,6 @@ public:
     Framebuffer(int w, int h);
     void clear(const Vector3<float>& color);
     void setPixel(int x, int y, const Vector3<float>& color);
+    void drawLine(int x0, int y0, int x1, int y1, const Vector3<float>& color);
     bool saveToTGA(const std::string& filename);
 };

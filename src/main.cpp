@@ -10,8 +10,11 @@ int main() {
     Framebuffer framebuffer(width, height);
     framebuffer.clear(Vector3<float>(0.2f, 0.2f, 0.2f));
 
-    // Test drawing a red pixel
-    framebuffer.setPixel(width/2, height/2, Vector3<float>(1.0f, 0.0f, 0.0f));
+    // Test drawing lines in different directions
+    framebuffer.drawLine(100, 100, 700, 100, Vector3<float>(1.0f, 0.0f, 0.0f)); // Horizontal
+    framebuffer.drawLine(100, 150, 700, 500, Vector3<float>(0.0f, 1.0f, 0.0f)); // Diagonal
+    framebuffer.drawLine(400, 100, 400, 500, Vector3<float>(0.0f, 0.0f, 1.0f)); // Vertical
+    framebuffer.drawLine(700, 100, 500, 150, Vector3<float>(1.0f, 1.0f, 0.0f)); // Reverse diagonal
 
     // Save to file
     if (!framebuffer.saveToTGA("output.tga")) {
