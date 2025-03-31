@@ -18,4 +18,17 @@ file(GLOB SOURCES
 # 创建可执行文件
 add_executable(SoftRasterizer ${SOURCES})
 
+set_target_properties(SoftRasterizer PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+)
+
+# 编译后拷贝obj文件夹到构建目录
+add_custom_command(TARGET SoftRasterizer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/obj
+    ${CMAKE_BINARY_DIR}/bin/obj
+)
+
 # Windows平台不需要显式链接数学库
