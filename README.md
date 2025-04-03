@@ -12,7 +12,7 @@
 ```bash
 cmake -S . -B build
 cmake --build build --config Release
-./build/Release/SoftRasterizer.exe
+./build/bin/SoftRasterizer.exe
 ```
 
 详细文档请查看[文档说明](./docs/SOFTRASTERIZER-INTRODUCTION.md)
