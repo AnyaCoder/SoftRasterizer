@@ -106,14 +106,14 @@ void Model::renderSolid(Framebuffer& fb, const Vector3<float>& color, const Vect
 
         // Get face normal (use provided normals or calculate from geometry)
         Vector3<float> normal;
-        if (fi < faceNormals.size() && faceNormals[fi].size() >= 3) {
-            normal = (normals[faceNormals[fi][0]] + 
-                     normals[faceNormals[fi][1]] + 
-                     normals[faceNormals[fi][2]]).normalized();
-        } else {
-            normal = calculateFaceNormal(face);
-        }
-
+        // if (fi < faceNormals.size() && faceNormals[fi].size() >= 3) {
+        //     normal = (normals[faceNormals[fi][0]] + 
+        //              normals[faceNormals[fi][1]] + 
+        //              normals[faceNormals[fi][2]]).normalized();
+        // } else {
+        //     normal = calculateFaceNormal(face);
+        // }
+        normal = calculateFaceNormal(face);
         // Calculate lighting intensity (dot product with light direction)
         float intensity = normal.dot(lightDir.normalized());
         if (intensity > 0) {
@@ -125,18 +125,21 @@ void Model::renderSolid(Framebuffer& fb, const Vector3<float>& color, const Vect
             Vector3<float> world_coords[3];
             for (int j=0; j<3; j++) {
                 const auto& v = vertices[face[j]];
+                // 确保顶点坐标在[-1,1]范围内
+                float x = std::max(-1.0f, std::min(1.0f, v.x));
+                float y = std::max(-1.0f, std::min(1.0f, v.y));
                 screen_coords[j] = Vector2<int>(
-                    static_cast<int>((v.x+1)*fb.width/2), 
-                    static_cast<int>((v.y+1)*fb.height/2)
+                    static_cast<int>((x+1)*fb.width/2), 
+                    static_cast<int>((y+1)*fb.height/2)
                 );
                 world_coords[j] = v;
             }
 
             // Draw filled triangle
             fb.drawTriangle(
-                screen_coords[0].x, screen_coords[0].y,
-                screen_coords[1].x, screen_coords[1].y,
-                screen_coords[2].x, screen_coords[2].y,
+                screen_coords[0].x, screen_coords[0].y, world_coords[0].z,
+                screen_coords[1].x, screen_coords[1].y, world_coords[1].z,
+                screen_coords[2].x, screen_coords[2].y, world_coords[2].z,
                 shadedColor
             );
         }
