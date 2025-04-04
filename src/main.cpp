@@ -13,13 +13,18 @@ int main() {
     framebuffer.clearZBuffer();
 
     Model model;
-    if (!model.loadFromObj("obj/african_head.obj")) {
+    if (!model.loadFromObj("resources/obj/african_head.obj")) {
         std::cerr << "Failed to load model" << std::endl;
         return 1;
     }
 
-    // Render model in white wireframe
-    // model.renderWireframe(framebuffer, Vector3<float>(1.0f, 1.0f, 1.0f));
+    // Load diffuse texture
+    if (!model.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga")) {
+        std::cerr << "Failed to load texture" << std::endl;
+        return 1;
+    }
+
+    // Render model with texture and lighting
     model.renderSolid(framebuffer, Vector3<float>(1.0f, 1.0f, 1.0f), Vector3<float>(0.0f, 0.0f, 1.0f));
     
     framebuffer.flipVertical();

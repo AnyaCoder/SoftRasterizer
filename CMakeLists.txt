@@ -27,8 +27,8 @@ set_target_properties(SoftRasterizer PROPERTIES
 # 编译后拷贝obj文件夹到构建目录
 add_custom_command(TARGET SoftRasterizer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/obj
-    ${CMAKE_BINARY_DIR}/bin/obj
+    ${CMAKE_SOURCE_DIR}/resources
+    ${CMAKE_BINARY_DIR}/bin/resources
 )
 
 # Windows平台不需要显式链接数学库

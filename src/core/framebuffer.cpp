@@ -36,32 +36,37 @@ void Framebuffer::flipVertical() {
     }
 }
 
-int Framebuffer::interpolate(int x1, int y1, int x2, int y2, int y) {
-    if (y1 == y2) return x1;
-    return x1 + (x2 - x1) * (y - y1) / (y2 - y1);
-}
-
-void Framebuffer::drawTriangle(int x0, int y0, float z0, 
-                              int x1, int y1, float z1,
-                              int x2, int y2, float z2,
-                              const Vector3<float>& color) {
-    // Sort vertices by y-coordinate (y0 <= y1 <= y2)
-    if (y0 > y1) { std::swap(x0, x1); std::swap(y0, y1); }
-    if (y0 > y2) { std::swap(x0, x2); std::swap(y0, y2); }
-    if (y1 > y2) { std::swap(x1, x2); std::swap(y1, y2); }
-
-    // Handle degenerate triangles
-    if (y0 == y2) return;
-
-    // Draw top part of triangle (y0 to y1)
-    for (int y = y0; y <= y1; y++) {
+void Framebuffer::drawScanlines(int yStart, int yEnd, 
+                    const Vertex& vStartA, const Vertex& vEndA,
+                    const Vertex& vStartB, const Vertex& vEndB,
+                    const Vector3<float>& color, const Texture& texture) {
+    bool useTexture = !texture.empty();
+    
+    for (int y = yStart; y <= yEnd; y++) {
         if (y < 0 || y >= height) continue;
         
-        int xa = interpolate(x0, y0, x2, y2, y);
-        int xb = interpolate(x0, y0, x1, y1, y);
-        float za = (y2 != y0) ? z0 + (z2 - z0) * (y - y0) / (y2 - y0) : z0;
-        float zb = (y1 != y0) ? z0 + (z1 - z0) * (y - y0) / (y1 - y0) : z0;
+        int xa = interpolate<int, int>(vStartA.x, vStartA.y, vEndA.x, vEndA.y, y);
+        int xb = interpolate<int, int>(vStartB.x, vStartB.y, vEndB.x, vEndB.y, y);
+        float za = interpolate<float, int>(vStartA.z, vStartA.y, vEndA.z, vEndA.y, y);
+        float zb = interpolate<float, int>(vStartB.z, vStartB.y, vEndB.z, vEndB.y, y);
         
+        float ua = 0;
+        float ub = 0;
+        float va = 0;
+        float vb = 0;
+
+        if (useTexture) {
+            // Interpolate texture coordinates
+            ua = interpolate<float, int>(vStartA.u, vStartA.y, vEndA.u, vEndA.y, y);
+            ub = interpolate<float, int>(vStartB.u, vStartB.y, vEndB.u, vEndB.y, y);
+            va = interpolate<float, int>(vStartA.v, vStartA.y, vEndA.v, vEndA.y, y);
+            vb = interpolate<float, int>(vStartB.v, vStartB.y, vEndB.v, vEndB.y, y);
+            if (xa > xb) {
+                std::swap(ua, ub);
+                std::swap(va, vb);
+            }
+        }
+
         if (xa > xb) {
             std::swap(xa, xb);
             std::swap(za, zb);
@@ -73,32 +78,39 @@ void Framebuffer::drawTriangle(int x0, int y0, float z0,
         for (int x = xa; x <= xb; x++) {
             float t = (xb != xa) ? (float)(x - xa)/(xb - xa) : 0.0f;
             float depth = za + (zb - za) * t;
-            setPixel(x, y, color, depth);
+            
+            Vector3<float> finalColor = color;
+            if (useTexture) {
+                float u = ua + (ub - ua) * t;
+                float v = va + (vb - va) * t;
+                finalColor = texture.sample(u, v);
+            }
+            
+            setPixel(x, y, finalColor, depth);
         }
     }
+}
 
-    // Draw bottom part of triangle (y1 to y2)
-    for (int y = y1; y <= y2; y++) {
-        if (y < 0 || y >= height) continue;
-        
-        int xa = interpolate(x0, y0, x2, y2, y);
-        int xb = interpolate(x1, y1, x2, y2, y);
-        float za = (y2 != y0) ? z0 + (z2 - z0) * (y - y0) / (y2 - y0) : z0;
-        float zb = (y2 != y1) ? z1 + (z2 - z1) * (y - y1) / (y2 - y1) : z1;
-        
-        if (xa > xb) {
-            std::swap(xa, xb);
-            std::swap(za, zb);
-        }
-        
-        xa = std::max(0, std::min(width-1, xa));
-        xb = std::max(0, std::min(width-1, xb));
-        
-        for (int x = xa; x <= xb; x++) {
-            float t = (xb != xa) ? (float)(x - xa)/(xb - xa) : 0.0f;
-            float depth = za + (zb - za) * t;
-            setPixel(x, y, color, depth);
-        }
+
+void Framebuffer::drawTriangle(Vertex v0, Vertex v1, Vertex v2,
+                     const Vector3<float>& color,
+                     const Texture& texture) {
+    // Sort vertices by y-coordinate (v0.y <= v1.y <= v2.y)
+    if (v0.y > v1.y) { std::swap(v0, v1); }
+    if (v0.y > v2.y) { std::swap(v0, v2); }
+    if (v1.y > v2.y) { std::swap(v1, v2); }
+
+    // Handle degenerate triangles
+    if (v0.y == v2.y) return;
+
+    // Draw top part (v0.y to v1.y)
+    if (v0.y < v1.y) {
+        drawScanlines(v0.y, v1.y, v0, v2, v0, v1, color, texture);
+    }
+
+    // Draw bottom part (v1.y to v2.y)
+    if (v1.y < v2.y) {
+        drawScanlines(v1.y, v2.y, v0, v2, v1, v2, color, texture);
     }
 }
 

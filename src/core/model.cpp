@@ -64,6 +64,10 @@ bool Model::loadFromObj(const std::string& filename) {
     return true;
 }
 
+bool Model::loadDiffuseTexture(const std::string& filename) {
+    return diffuseTexture.loadFromTGA(filename);
+}
+
 Vector3<float> Model::calculateFaceNormal(const std::vector<int>& faceIndices) const {
     if (faceIndices.size() < 3) return Vector3<float>(0, 0, 1);
     
@@ -123,9 +127,11 @@ void Model::renderSolid(Framebuffer& fb, const Vector3<float>& color, const Vect
             // Project vertices to screen space
             Vector2<int> screen_coords[3];
             Vector3<float> world_coords[3];
-            for (int j=0; j<3; j++) {
+            Vector2<float> tex_coords[3];
+            
+            for (int j = 0; j < 3; j++) {
                 const auto& v = vertices[face[j]];
-                // 确保顶点坐标在[-1,1]范围内
+                // Ensure vertex coordinates are in [-1,1] range
                 float x = std::max(-1.0f, std::min(1.0f, v.x));
                 float y = std::max(-1.0f, std::min(1.0f, v.y));
                 screen_coords[j] = Vector2<int>(
@@ -133,15 +139,23 @@ void Model::renderSolid(Framebuffer& fb, const Vector3<float>& color, const Vect
                     static_cast<int>((y+1)*fb.height/2)
                 );
                 world_coords[j] = v;
+                
+                // Get texture coordinates if available
+                if (fi < faceTexCoords.size() && j < faceTexCoords[fi].size()) {
+                    const auto& vt = texCoords[faceTexCoords[fi][j]];
+                    tex_coords[j] = Vector2<float>(vt.x, vt.y);
+                } else {
+                    tex_coords[j] = Vector2<float>(0, 0);
+                }
             }
 
-            // Draw filled triangle
-            fb.drawTriangle(
-                screen_coords[0].x, screen_coords[0].y, world_coords[0].z,
-                screen_coords[1].x, screen_coords[1].y, world_coords[1].z,
-                screen_coords[2].x, screen_coords[2].y, world_coords[2].z,
-                shadedColor
-            );
+            // Draw textured triangle
+            Vertex v0(screen_coords[0].x, screen_coords[0].y, world_coords[0].z, tex_coords[0].x, tex_coords[0].y);
+            Vertex v1(screen_coords[1].x, screen_coords[1].y, world_coords[1].z, tex_coords[1].x, tex_coords[1].y);
+            Vertex v2(screen_coords[2].x, screen_coords[2].y, world_coords[2].z, tex_coords[2].x, tex_coords[2].y);
+            
+            // Use white color multiplied by intensity for lighting
+            fb.drawTriangle(v0, v1, v2, shadedColor, diffuseTexture);
         }
     }
 }

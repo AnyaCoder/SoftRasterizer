@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include "math/vector.h"
+#include "core/texture.h"
+#include "core/vertex.h"
 
 class Framebuffer {
 public:
@@ -15,15 +17,24 @@ public:
     void clear(const Vector3<float>& color);
     void setPixel(int x, int y, const Vector3<float>& color, float depth = 0.0f);
     void drawLine(int x0, int y0, int x1, int y1, const Vector3<float>& color);
-    void drawTriangle(int x0, int y0, float z0 = 0.0f,
-                     int x1 = 0, int y1 = 0, float z1 = 0.0f,
-                     int x2 = 0, int y2 = 0, float z2 = 0.0f,
-                     const Vector3<float>& color = Vector3<float>());
+    void drawTriangle(Vertex v0, Vertex v1, Vertex v2,
+                     const Vector3<float>& color, 
+                     const Texture& texture);
     bool saveToTGA(const std::string& filename);
     
     void flipHorizontal();
     void flipVertical();
+
 private:
-    int interpolate(int x1, int y1, int x2, int y2, int y);
-    
+    void drawScanlines(int yStart, int yEnd, 
+        const Vertex& vStartA, const Vertex& vEndA,
+        const Vertex& vStartB, const Vertex& vEndB,
+        const Vector3<float>& color, const Texture& texture);
+
+    template<typename T, typename U>
+    T interpolate(T x1, U y1, T x2, U y2, U y) {
+        if (y1 == y2) return x1;
+        return x1 + static_cast<T>((x2 - x1) * (y - y1) / (y2 - y1));
+    }
+        
 };
