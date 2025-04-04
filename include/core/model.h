@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "math/vector.h"
+#include "math/matrix.h"
 #include "core/texture.h"
 
 class Framebuffer;
@@ -19,6 +20,6 @@ public:
     bool loadFromObj(const std::string& filename);
     bool loadDiffuseTexture(const std::string& filename);
     void renderWireframe(Framebuffer& fb, const Vector3<float>& color);
-    void renderSolid(Framebuffer& fb, const Vector3<float>& color, const Vector3<float>& lightDir);
+    void renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const Vector3<float>& color, const Vector3<float>& lightDir);
     Vector3<float> calculateFaceNormal(const std::vector<int>& faceIndices) const;
 };

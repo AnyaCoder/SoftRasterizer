@@ -6,8 +6,9 @@ struct Vertex {
     float z = 0.0f;
     float u = 0.0f;
     float v = 0.0f;
+    float w = 1.0f;
     
     Vertex() = default;
-    Vertex(int x, int y, float z, float u = 0.0f, float v = 0.0f) 
-        : x(x), y(y), z(z), u(u), v(v) {}
+    Vertex(int x, int y, float z, float u = 0.0f, float v = 0.0f, float w = 1.0f) 
+        : x(x), y(y), z(z), u(u), v(v), w(w) {}
 };

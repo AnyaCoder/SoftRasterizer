@@ -1,19 +1,20 @@
 #include "core/framebuffer.h"
 
-Framebuffer::Framebuffer(int w, int h) : width(w), height(h), pixels(w * h), zBuffer(w * h, std::numeric_limits<float>::lowest()) {}
+Framebuffer::Framebuffer(int w, int h) : width(w), height(h), pixels(w * h), zBuffer(w * h, std::numeric_limits<float>::max()) {}
 
 void Framebuffer::clear(const Vector3<float>& color) {
     std::fill(pixels.begin(), pixels.end(), color);
 }
 
 void Framebuffer::clearZBuffer() {
-    std::fill(zBuffer.begin(), zBuffer.end(), std::numeric_limits<float>::lowest());
+    std::fill(zBuffer.begin(), zBuffer.end(), std::numeric_limits<float>::max());
 }
 
 void Framebuffer::setPixel(int x, int y, const Vector3<float>& color, float depth) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
         int index = y * width + x;
-        if (depth > zBuffer[index]) {  // 右手系，z值越大表示越远
+        // 改为小于测试：深度值越小（更近）越能覆盖已有像素
+        if (depth < zBuffer[index]) {  // 右手系，z值越小表示越近
             zBuffer[index] = depth;
             pixels[index] = color;
         }
@@ -37,9 +38,9 @@ void Framebuffer::flipVertical() {
 }
 
 void Framebuffer::drawScanlines(int yStart, int yEnd, 
-                    const Vertex& vStartA, const Vertex& vEndA,
-                    const Vertex& vStartB, const Vertex& vEndB,
-                    const Vector3<float>& color, const Texture& texture) {
+                              const Vertex& vStartA, const Vertex& vEndA,
+                              const Vertex& vStartB, const Vertex& vEndB,
+                              const Vector3<float>& color, const Texture& texture) {
     bool useTexture = !texture.empty();
     
     for (int y = yStart; y <= yEnd; y++) {
@@ -50,26 +51,25 @@ void Framebuffer::drawScanlines(int yStart, int yEnd,
         float za = interpolate<float, int>(vStartA.z, vStartA.y, vEndA.z, vEndA.y, y);
         float zb = interpolate<float, int>(vStartB.z, vStartB.y, vEndB.z, vEndB.y, y);
         
-        float ua = 0;
-        float ub = 0;
-        float va = 0;
-        float vb = 0;
-
+        float wa = interpolate<float, int>(vStartA.w, vStartA.y, vEndA.w, vEndA.y, y);
+        float wb = interpolate<float, int>(vStartB.w, vStartB.y, vEndB.w, vEndB.y, y);
+        
+        float ua = 0, ub = 0, va = 0, vb = 0;
         if (useTexture) {
-            // Interpolate texture coordinates
             ua = interpolate<float, int>(vStartA.u, vStartA.y, vEndA.u, vEndA.y, y);
             ub = interpolate<float, int>(vStartB.u, vStartB.y, vEndB.u, vEndB.y, y);
             va = interpolate<float, int>(vStartA.v, vStartA.y, vEndA.v, vEndA.y, y);
             vb = interpolate<float, int>(vStartB.v, vStartB.y, vEndB.v, vEndB.y, y);
-            if (xa > xb) {
-                std::swap(ua, ub);
-                std::swap(va, vb);
-            }
         }
 
         if (xa > xb) {
             std::swap(xa, xb);
             std::swap(za, zb);
+            std::swap(wa, wb);
+            if (useTexture) {
+                std::swap(ua, ub);
+                std::swap(va, vb);
+            }
         }
         
         xa = std::max(0, std::min(width-1, xa));
@@ -78,11 +78,14 @@ void Framebuffer::drawScanlines(int yStart, int yEnd,
         for (int x = xa; x <= xb; x++) {
             float t = (xb != xa) ? (float)(x - xa)/(xb - xa) : 0.0f;
             float depth = za + (zb - za) * t;
+            float w = wa + (wb - wa) * t;
             
             Vector3<float> finalColor = color;
-            if (useTexture) {
-                float u = ua + (ub - ua) * t;
-                float v = va + (vb - va) * t;
+            if (useTexture && w != 0) {
+                // 透视校正插值
+                float invW = 1.0f / w;
+                float u = (ua + (ub - ua) * t) * invW;
+                float v = (va + (vb - va) * t) * invW;
                 finalColor = texture.sample(u, v) * color;
             }
             
