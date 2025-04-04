@@ -83,7 +83,7 @@ void Framebuffer::drawScanlines(int yStart, int yEnd,
             if (useTexture) {
                 float u = ua + (ub - ua) * t;
                 float v = va + (vb - va) * t;
-                finalColor = texture.sample(u, v);
+                finalColor = texture.sample(u, v) * color;
             }
             
             setPixel(x, y, finalColor, depth);
