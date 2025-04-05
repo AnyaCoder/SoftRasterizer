@@ -10,7 +10,7 @@ int main() {
     const int height = 800;
     
     Framebuffer framebuffer(width, height);
-    framebuffer.clear(Vector3<float>(0.5f, 0.5f, 0.5f));
+    framebuffer.clear(vec3f(0.5f, 0.5f, 0.5f));
     framebuffer.clearZBuffer();
 
     Model model;
@@ -30,17 +30,18 @@ int main() {
 
     // 设置相机
     Camera camera(
-        Vector3<float>(-2, 0, 3),  // 相机位置
-        Vector3<float>(0, 0, 0),   // 目标点（朝向 -Z）
-        Vector3<float>(0, 1, 0)  // 上方向
+        vec3f(-2, 0, 3),  // 相机位置
+        vec3f(0, 0, 0),   // 目标点（朝向 -Z）
+        vec3f(0, 1, 0)  // 上方向
     );
     camera.setPerspective(45.0f, (float)width / height, near, far);
 
-    Matrix4x4 modelMatrix = Matrix4x4::identity();
+    auto modelMatrix = Matrix4x4::identity();
     Matrix4x4 mvp = camera.getMVP(modelMatrix);
+    auto lightColor = vec3f(1.0f, 1.0f, 1.0f);
+    auto lightDir = vec3f(0.707f, 0.0f, -0.707f);
     // 渲染
-    model.renderSolid(framebuffer, near, far, mvp, Vector3<float>(1.0f, 1.0f, 1.0f), 
-                      Vector3<float>(0.707f, 0.0f, -0.707f));
+    model.renderSolid(framebuffer, near, far, mvp, lightColor, lightDir);
     
     framebuffer.flipVertical();
     // Save to file

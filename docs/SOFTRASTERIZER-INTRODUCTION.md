@@ -38,7 +38,7 @@ struct Matrix4x4 {
 ```cpp
 class Framebuffer {
     int width, height;
-    std::vector<Vector3<float>> pixels;
+    std::vector<vec3f> pixels;
     
 public:
     // 清屏、像素绘制等操作...

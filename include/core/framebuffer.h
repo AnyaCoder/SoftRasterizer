@@ -9,16 +9,16 @@ class Framebuffer {
 public:
     int width;
     int height;
-    std::vector<Vector3<float>> pixels;
+    std::vector<vec3f> pixels;
     std::vector<float> zBuffer;  // Depth buffer
 
     Framebuffer(int w, int h);
     void clearZBuffer();
-    void clear(const Vector3<float>& color);
-    void setPixel(int x, int y, const Vector3<float>& color, float depth = 0.0f);
-    void drawLine(int x0, int y0, int x1, int y1, const Vector3<float>& color);
+    void clear(const vec3f& color);
+    void setPixel(int x, int y, const vec3f& color, float depth = 0.0f);
+    void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
     void drawTriangle(Vertex v0, Vertex v1, Vertex v2,
-                     const Vector3<float>& color, 
+                     const vec3f& color, 
                      const Texture& texture);
     bool saveToTGA(const std::string& filename);
     
@@ -29,7 +29,7 @@ private:
     void drawScanlines(int yStart, int yEnd, 
         const Vertex& vStartA, const Vertex& vEndA,
         const Vertex& vStartB, const Vertex& vEndB,
-        const Vector3<float>& color, const Texture& texture);
+        const vec3f& color, const Texture& texture);
 
     template<typename T, typename U>
     T interpolate(T x1, U y1, T x2, U y2, U y) {

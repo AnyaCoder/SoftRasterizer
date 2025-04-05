@@ -33,7 +33,7 @@ void clearZBuffer() {
 
 ### 2. 深度测试实现
 ```cpp
-void setPixel(int x, int y, const Vector3<float>& color, float depth) {
+void setPixel(int x, int y, const vec3f& color, float depth) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
         int index = y * width + x;
         // 右手坐标系：z值越大表示越远
@@ -68,7 +68,7 @@ void drawTriangle(/* 参数 */) {
 ### 4. 主循环集成
 ```cpp
 // 每帧清空
-framebuffer.clear(Vector3<float>(0.1f, 0.1f, 0.1f));
+framebuffer.clear(vec3f(0.1f, 0.1f, 0.1f));
 framebuffer.clearZBuffer();
 ```
 

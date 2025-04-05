@@ -45,7 +45,7 @@ int err = dx / 2; // 初始误差
 class Framebuffer {
 public:
     // ...
-    void drawLine(int x0, int y0, int x1, int y1, const Vector3<float>& color);
+    void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
 };
 ```
 
@@ -54,13 +54,13 @@ public:
 测试不同方向的直线绘制：
 ```cpp
 // 水平线（红色）
-framebuffer.drawLine(100, 100, 700, 100, Vector3<float>(1,0,0));
+framebuffer.drawLine(100, 100, 700, 100, vec3f(1,0,0));
 
 // 垂直线（蓝色）  
-framebuffer.drawLine(400, 100, 400, 500, Vector3<float>(0,0,1));
+framebuffer.drawLine(400, 100, 400, 500, vec3f(0,0,1));
 
 // 对角线（绿色）
-framebuffer.drawLine(100, 150, 700, 500, Vector3<float>(0,1,0));
+framebuffer.drawLine(100, 150, 700, 500, vec3f(0,1,0));
 ```
 
 ## 效果验证

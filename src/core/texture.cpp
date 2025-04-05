@@ -11,7 +11,7 @@ bool Texture::loadFromTGA(const std::string& filename) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int idx = (y * width + x) * 3;
-            pixels[y * width + x] = Vector3<float>(
+            pixels[y * width + x] = vec3f(
                 data[idx] / 255.0f,
                 data[idx+1] / 255.0f,
                 data[idx+2] / 255.0f
@@ -21,7 +21,7 @@ bool Texture::loadFromTGA(const std::string& filename) {
     return true;
 }
 
-Vector3<float> Texture::sample(float u, float v) const {
+vec3f Texture::sample(float u, float v) const {
     // Wrap texture coordinates
     u = u - floorf(u);
     v = v - floorf(v);

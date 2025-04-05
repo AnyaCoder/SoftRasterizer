@@ -2,7 +2,7 @@
 
 Framebuffer::Framebuffer(int w, int h) : width(w), height(h), pixels(w * h), zBuffer(w * h, std::numeric_limits<float>::max()) {}
 
-void Framebuffer::clear(const Vector3<float>& color) {
+void Framebuffer::clear(const vec3f& color) {
     std::fill(pixels.begin(), pixels.end(), color);
 }
 
@@ -10,7 +10,7 @@ void Framebuffer::clearZBuffer() {
     std::fill(zBuffer.begin(), zBuffer.end(), std::numeric_limits<float>::max());
 }
 
-void Framebuffer::setPixel(int x, int y, const Vector3<float>& color, float depth) {
+void Framebuffer::setPixel(int x, int y, const vec3f& color, float depth) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
         int index = y * width + x;
         // 改为小于测试：深度值越小（更近）越能覆盖已有像素
@@ -40,7 +40,7 @@ void Framebuffer::flipVertical() {
 void Framebuffer::drawScanlines(int yStart, int yEnd, 
                               const Vertex& vStartA, const Vertex& vEndA,
                               const Vertex& vStartB, const Vertex& vEndB,
-                              const Vector3<float>& color, const Texture& texture) {
+                              const vec3f& color, const Texture& texture) {
     bool useTexture = !texture.empty();
     
     for (int y = yStart; y <= yEnd; y++) {
@@ -80,7 +80,7 @@ void Framebuffer::drawScanlines(int yStart, int yEnd,
             float depth = za + (zb - za) * t;
             float w = wa + (wb - wa) * t;
             
-            Vector3<float> finalColor = color;
+            vec3f finalColor = color;
             if (useTexture && w != 0) {
                 // 透视校正插值
                 float invW = 1.0f / w;
@@ -96,7 +96,7 @@ void Framebuffer::drawScanlines(int yStart, int yEnd,
 
 
 void Framebuffer::drawTriangle(Vertex v0, Vertex v1, Vertex v2,
-                     const Vector3<float>& color,
+                     const vec3f& color,
                      const Texture& texture) {
     // Sort vertices by y-coordinate (v0.y <= v1.y <= v2.y)
     if (v0.y > v1.y) { std::swap(v0, v1); }
@@ -117,7 +117,7 @@ void Framebuffer::drawTriangle(Vertex v0, Vertex v1, Vertex v2,
     }
 }
 
-void Framebuffer::drawLine(int x0, int y0, int x1, int y1, const Vector3<float>& color) {
+void Framebuffer::drawLine(int x0, int y0, int x1, int y1, const vec3f& color) {
     bool steep = abs(y1 - y0) > abs(x1 - x0);
     if (steep) {
         std::swap(x0, y0);

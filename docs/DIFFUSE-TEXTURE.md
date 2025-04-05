@@ -19,10 +19,10 @@ class Texture {
 public:
     int width = 0;
     int height = 0;
-    std::vector<Vector3<float>> pixels;
+    std::vector<vec3f> pixels;
 
     bool loadFromTGA(const std::string& filename);
-    Vector3<float> sample(float u, float v) const;
+    vec3f sample(float u, float v) const;
     
     bool empty() const {
         return pixels.empty() || width == 0 || height == 0;
@@ -40,7 +40,7 @@ bool Texture::loadFromTGA(const std::string& filename) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int idx = (y * width + x) * 3;
-            pixels[y * width + x] = Vector3<float>(
+            pixels[y * width + x] = vec3f(
                 data[idx] / 255.0f,     // R
                 data[idx + 1] / 255.0f, // G
                 data[idx + 2] / 255.0f  // B
@@ -125,7 +125,7 @@ public:
         return diffuseTexture.loadFromTGA(filename);
     }
     
-    void renderSolid(Framebuffer& fb, const Vector3<float>& lightDir, const Vector3<float>& eye) {
+    void renderSolid(Framebuffer& fb, const vec3f& lightDir, const vec3f& eye) {
         // 使用 diffuseTexture 进行渲染...
     }
 };
@@ -136,7 +136,7 @@ public:
 ```cpp
 int main() {
     Framebuffer framebuffer(800, 800);
-    framebuffer.clear(Vector3<float>(0.5f, 0.5f, 0.5f));
+    framebuffer.clear(vec3f(0.5f, 0.5f, 0.5f));
     framebuffer.clearZBuffer();
 
     Model model;
@@ -150,7 +150,7 @@ int main() {
         return 1;
     }
 
-    model.renderSolid(framebuffer, Vector3<float>(1.0f, 1.0f, 1.0f), Vector3<float>(0.0f, 0.0f, 1.0f));
+    model.renderSolid(framebuffer, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, 1.0f));
     framebuffer.flipVertical();
     framebuffer.saveToTGA("output.tga");
 

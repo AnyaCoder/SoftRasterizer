@@ -21,7 +21,7 @@ comments: true
 最初的渲染代码（`src/main.cpp`）使用简单的屏幕空间投影，直接将模型的顶点映射到帧缓冲区，没有考虑透视效果和深度缓冲的正确性：
 
 ```cpp
-model.renderSolid(framebuffer, Vector3<float>(1.0f, 1.0f, 1.0f), Vector3<float>(0.0f, 0.0f, 1.0f));
+model.renderSolid(framebuffer, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, 1.0f));
 ```
 
 目标是引入透视投影，使远处的物体变小，并通过深度测试实现正确的遮挡关系。以下是实现过程的步骤。
@@ -54,7 +54,7 @@ Matrix4x4 mvp = projectionMatrix * viewMatrix * modelMatrix;
 渲染调用改为：
 
 ```cpp
-model.renderSolid(framebuffer, near, far, mvp, Vector3<float>(1.0f, 1.0f, 1.0f), Vector3<float>(0.0f, 0.0f, 1.0f));
+model.renderSolid(framebuffer, near, far, mvp, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, 1.0f));
 ```
 
 ## 步骤 2：顶点变换与透视除法
@@ -66,13 +66,13 @@ model.renderSolid(framebuffer, near, far, mvp, Vector3<float>(1.0f, 1.0f, 1.0f),
 将顶点从模型空间变换到裁剪空间：
 
 ```cpp
-Vector4<float> clip_coords[3];
-Vector3<float> world_coords[3];
+vec4f clip_coords[3];
+vec3f world_coords[3];
 float w_values[3];
 
 for (int j = 0; j < 3; j++) {
     world_coords[j] = vertices[face[j]];
-    Vector4<float> v(world_coords[j], 1.0f);
+    vec4f v(world_coords[j], 1.0f);
     clip_coords[j] = mvp * v;
     w_values[j] = clip_coords[j].w;
 }
@@ -102,7 +102,7 @@ Vertex vertices[3];
 for (int j = 0; j < 3; j++) {
     if (w_values[j] <= 0) continue;
     float invW = 1.0f / w_values[j];
-    Vector3<float> ndc(
+    vec3f ndc(
         clip_coords[j].x * invW,
         clip_coords[j].y * invW,
         clip_coords[j].z * invW

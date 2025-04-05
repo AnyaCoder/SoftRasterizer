@@ -7,10 +7,10 @@ class Texture {
 public:
     int width;
     int height;
-    std::vector<Vector3<float>> pixels;
+    std::vector<vec3f> pixels;
 
     bool loadFromTGA(const std::string& filename);
-    Vector3<float> sample(float u, float v) const;
+    vec3f sample(float u, float v) const;
     bool empty() const {
         return pixels.empty() || width == 0 || height == 0;
     }

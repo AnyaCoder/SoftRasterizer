@@ -48,3 +48,8 @@ struct Vector4 {
     
     Vector3<T> xyz() const { return Vector3<T>(x, y, z); }
 };
+
+using vec2f = Vector2<float>;
+using vec3f = Vector3<float>;
+using vec4f = Vector4<float>;
+using vec2i = Vector2<int>;

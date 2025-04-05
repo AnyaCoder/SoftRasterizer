@@ -23,15 +23,15 @@ tags:
 
 class Camera {
 public:
-    Camera(const Vector3<float>& position, const Vector3<float>& target, const Vector3<float>& up);
+    Camera(const vec3f& position, const vec3f& target, const vec3f& up);
     void setPerspective(float fovDegrees, float aspectRatio, float near, float far);
     Matrix4x4 getMVP(const Matrix4x4& modelMatrix) const;
-    void setPosition(const Vector3<float>& position);
+    void setPosition(const vec3f& position);
 
 private:
-    Vector3<float> m_position;  // 相机位置
-    Vector3<float> m_target;    // 目标点
-    Vector3<float> m_up;        // 上方向
+    vec3f m_position;  // 相机位置
+    vec3f m_target;    // 目标点
+    vec3f m_up;        // 上方向
     Matrix4x4 m_viewMatrix;     // 视图矩阵
     Matrix4x4 m_projMatrix;     // 投影矩阵
     void updateViewMatrix();    // 更新视图矩阵
@@ -44,7 +44,7 @@ private:
 // camera.cpp
 #include "core/camera.h"
 
-Camera::Camera(const Vector3<float>& position, const Vector3<float>& target, const Vector3<float>& up)
+Camera::Camera(const vec3f& position, const vec3f& target, const vec3f& up)
     : m_position(position), m_target(target), m_up(up) {
     updateViewMatrix();
     m_projMatrix = Matrix4x4::identity();
@@ -58,15 +58,15 @@ Matrix4x4 Camera::getMVP(const Matrix4x4& modelMatrix) const {
     return m_projMatrix * m_viewMatrix * modelMatrix;
 }
 
-void Camera::setPosition(const Vector3<float>& position) {
+void Camera::setPosition(const vec3f& position) {
     m_position = position;
     updateViewMatrix();
 }
 
 void Camera::updateViewMatrix() {
-    Vector3<float> forward = (m_target - m_position).normalized();
-    Vector3<float> right = forward.cross(m_up).normalized();
-    Vector3<float> up = right.cross(forward).normalized();
+    vec3f forward = (m_target - m_position).normalized();
+    vec3f right = forward.cross(m_up).normalized();
+    vec3f up = right.cross(forward).normalized();
 
     Matrix4x4 rotation;
     rotation.m[0][0] = right.x;    rotation.m[0][1] = right.y;    rotation.m[0][2] = right.z;    rotation.m[0][3] = 0;
@@ -85,7 +85,7 @@ void Camera::updateViewMatrix() {
 int main() {
     const int width = 800, height = 800;
     Framebuffer framebuffer(width, height);
-    framebuffer.clear(Vector3<float>(0.5f, 0.5f, 0.5f));
+    framebuffer.clear(vec3f(0.5f, 0.5f, 0.5f));
     framebuffer.clearZBuffer();
 
     Model model;
@@ -96,13 +96,13 @@ int main() {
     }
 
     float near = 0.1f, far = 100.0f;
-    Camera camera(Vector3<float>(0, 0, 3), Vector3<float>(0, 0, 0), Vector3<float>(0, 1, 0));
+    Camera camera(vec3f(0, 0, 3), vec3f(0, 0, 0), vec3f(0, 1, 0));
     camera.setPerspective(45.0f, (float)width / height, near, far);
 
     Matrix4x4 modelMatrix = Matrix4x4::identity();
     Matrix4x4 mvp = camera.getMVP(modelMatrix);
 
-    model.renderSolid(framebuffer, near, far, mvp, Vector3<float>(1.0f, 1.0f, 1.0f), Vector3<float>(0.0f, 0.0f, -1.0f));
+    model.renderSolid(framebuffer, near, far, mvp, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, -1.0f));
 
     framebuffer.flipVertical();
     if (!framebuffer.saveToTGA("output.tga")) {
@@ -132,27 +132,27 @@ int main() {
 
 #### 验证方法
 - **正面验证**：
-  - 配置：Camera(Vector3<float>(0, 0, 3), Vector3<float>(0, 0, 0), Vector3<float>(0, 1, 0))
+  - 配置：Camera(vec3f(0, 0, 3), vec3f(0, 0, 0), vec3f(0, 1, 0))
   - 光照：(0, 0, -1)
   - 预期：看到模型正面。
 
 - **背面验证**：
-  - 配置：Camera(Vector3<float>(0, 0, -3), Vector3<float>(0, 0, 0), Vector3<float>(0, 1, 0))
+  - 配置：Camera(vec3f(0, 0, -3), vec3f(0, 0, 0), vec3f(0, 1, 0))
   - 光照：(0, 0, 1)
   - 预期：看到模型背面。
 
 - **侧面验证**：
-  - 配置：Camera(Vector3<float>(3, 0, 0), Vector3<float>(0, 0, 0), Vector3<float>(0, 1, 0))
+  - 配置：Camera(vec3f(3, 0, 0), vec3f(0, 0, 0), vec3f(0, 1, 0))
   - 光照：(-1, 0, 0)
   - 预期：看到模型右侧。
 
 - **顶部验证**：
-  - 配置：Camera(Vector3<float>(0, 3, 0), Vector3<float>(0, 0, 0), Vector3<float>(0, 0, -1))
+  - 配置：Camera(vec3f(0, 3, 0), vec3f(0, 0, 0), vec3f(0, 0, -1))
   - 光照：(0, -1, 0)
   - 预期：看到模型顶部，无退化。
 
 - **左前方验证**：
-  - 配置：Camera(Vector3<float>(-2, 0, 3), Vector3<float>(0, 0, 0), Vector3<float>(0, 1, 0))
+  - 配置：Camera(vec3f(-2, 0, 3), vec3f(0, 0, 0), vec3f(0, 1, 0))
   - 光照：(0.707, 0, -0.707)
   - 预期：看到模型左前方。
 ### 总结

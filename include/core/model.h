@@ -9,9 +9,9 @@ class Framebuffer;
 
 class Model {
 public:
-    std::vector<Vector3<float>> vertices;
-    std::vector<Vector3<float>> texCoords;
-    std::vector<Vector3<float>> normals;
+    std::vector<vec3f> vertices;
+    std::vector<vec3f> texCoords;
+    std::vector<vec3f> normals;
     std::vector<std::vector<int>> faces; // Stores vertex indices
     std::vector<std::vector<int>> faceTexCoords; // Stores texture coordinate indices
     std::vector<std::vector<int>> faceNormals; // Stores normal indices
@@ -19,7 +19,7 @@ public:
 
     bool loadFromObj(const std::string& filename);
     bool loadDiffuseTexture(const std::string& filename);
-    void renderWireframe(Framebuffer& fb, const Vector3<float>& color);
-    void renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const Vector3<float>& color, const Vector3<float>& lightDir);
-    Vector3<float> calculateFaceNormal(const std::vector<int>& faceIndices) const;
+    void renderWireframe(Framebuffer& fb, const vec3f& color);
+    void renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const vec3f& color, const vec3f& lightDir);
+    vec3f calculateFaceNormal(const std::vector<int>& faceIndices) const;
 };

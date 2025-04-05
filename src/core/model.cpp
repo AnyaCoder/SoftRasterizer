@@ -20,18 +20,18 @@ bool Model::loadFromObj(const std::string& filename) {
         iss >> type;
 
         if (type == "v") {
-            Vector3<float> v;
+            vec3f v;
             iss >> v.x >> v.y >> v.z;
             vertices.push_back(v);
         }
         else if (type == "vt") {
-            Vector3<float> vt;
+            vec3f vt;
             iss >> vt.x >> vt.y;
             if (iss >> vt.z) {} // Optional w component
             texCoords.push_back(vt);
         }
         else if (type == "vn") {
-            Vector3<float> vn;
+            vec3f vn;
             iss >> vn.x >> vn.y >> vn.z;
             normals.push_back(vn);
         }
@@ -68,19 +68,19 @@ bool Model::loadDiffuseTexture(const std::string& filename) {
     return diffuseTexture.loadFromTGA(filename);
 }
 
-Vector3<float> Model::calculateFaceNormal(const std::vector<int>& faceIndices) const {
-    if (faceIndices.size() < 3) return Vector3<float>(0, 0, 1);
+vec3f Model::calculateFaceNormal(const std::vector<int>& faceIndices) const {
+    if (faceIndices.size() < 3) return vec3f(0, 0, 1);
     
     const auto& v0 = vertices[faceIndices[0]];
     const auto& v1 = vertices[faceIndices[1]];
     const auto& v2 = vertices[faceIndices[2]];
     
-    Vector3<float> edge1 = v1 - v0;
-    Vector3<float> edge2 = v2 - v0;
+    vec3f edge1 = v1 - v0;
+    vec3f edge2 = v2 - v0;
     return edge1.cross(edge2).normalized();
 }
 
-void Model::renderWireframe(Framebuffer& fb, const Vector3<float>& color) {
+void Model::renderWireframe(Framebuffer& fb, const vec3f& color) {
     for (const auto& face : faces) {
         if (face.size() < 2) continue;
         
@@ -99,7 +99,7 @@ void Model::renderWireframe(Framebuffer& fb, const Vector3<float>& color) {
     }
 }
 
-void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const Vector3<float>& color, const Vector3<float>& lightDir) {
+void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const vec3f& color, const vec3f& lightDir) {
     // Note: lightDir should point TOWARDS the light source
     // Common conventions:
     // - Right-handed: (0,0,-1) for light coming from camera
@@ -109,7 +109,7 @@ void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4&
         if (face.size() < 3) continue;
 
         // Get face normal (use provided normals or calculate from geometry)
-        Vector3<float> normal;
+        vec3f normal;
         if (fi < faceNormals.size() && faceNormals[fi].size() >= 3) {
             normal = (normals[faceNormals[fi][0]] + 
                      normals[faceNormals[fi][1]] + 
@@ -121,23 +121,23 @@ void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4&
         // Calculate lighting intensity (dot product with light direction)
         float intensity = -normal.dot(lightDir.normalized());
         // 顶点数组
-        Vector4<float> clip_coords[3];
-        Vector2<float> tex_coords[3];
-        Vector3<float> world_coords[3];
+        vec4f clip_coords[3];
+        vec2f tex_coords[3];
+        vec3f world_coords[3];
         float w_values[3];  // 存储 w 值用于透视校正
 
         // 变换顶点
         for (int j = 0; j < 3; j++) {
             world_coords[j] = vertices[face[j]];
-            Vector4<float> v(world_coords[j], 1.0f);
+            vec4f v(world_coords[j], 1.0f);
             clip_coords[j] = mvp * v;
             w_values[j] = clip_coords[j].w;
 
             if (fi < faceTexCoords.size() && j < faceTexCoords[fi].size()) {
                 const auto& vt = texCoords[faceTexCoords[fi][j]];
-                tex_coords[j] = Vector2<float>(vt.x, vt.y);
+                tex_coords[j] = vec2f(vt.x, vt.y);
             } else {
-                tex_coords[j] = Vector2<float>(0, 0);
+                tex_coords[j] = vec2f(0, 0);
             }
         }
 
@@ -155,7 +155,7 @@ void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4&
             
             // 透视除法
             float invW = 1.0f / w_values[j];
-            Vector3<float> ndc(
+            vec3f ndc(
                 clip_coords[j].x * invW,
                 clip_coords[j].y * invW,
                 clip_coords[j].z * invW
@@ -180,7 +180,7 @@ void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4&
             vertices[j].w = invW;  // 存储 1/w 用于插值
         }
 
-        Vector3<float> shadedColor = color * (intensity <= 0 ? 0.0f : intensity);
+        vec3f shadedColor = color * (intensity <= 0 ? 0.0f : intensity);
         fb.drawTriangle(vertices[0], vertices[1], vertices[2], 
                         shadedColor, diffuseTexture);
     }
