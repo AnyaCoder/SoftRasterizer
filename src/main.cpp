@@ -1,6 +1,7 @@
 #include <iostream>
 #include "core/framebuffer.h"
 #include "core/model.h"
+#include "core/camera.h"
 #include "math/vector.h"
 #include "math/matrix.h"
 
@@ -27,22 +28,19 @@ int main() {
     float near = 0.1f;
     float far = 100.0f;
 
-    // 设置变换矩阵
-    Matrix4x4 modelMatrix = Matrix4x4::identity();
-    Matrix4x4 viewMatrix = Matrix4x4::translation(0, 0, -3); // 相机向后移动
-    Matrix4x4 projectionMatrix = Matrix4x4::perspective(
-        45.0f * 3.1415926f / 180.0f, // FOV
-        (float)width/height,   // 宽高比
-        near,                 // 近裁剪面
-        far                // 远裁剪面
+    // 设置相机
+    Camera camera(
+        Vector3<float>(-2, 0, 3),  // 相机位置
+        Vector3<float>(0, 0, 0),   // 目标点（朝向 -Z）
+        Vector3<float>(0, 1, 0)  // 上方向
     );
-    
-    // 组合变换矩阵
-    Matrix4x4 mvp = projectionMatrix * viewMatrix * modelMatrix;
+    camera.setPerspective(45.0f, (float)width / height, near, far);
 
+    Matrix4x4 modelMatrix = Matrix4x4::identity();
+    Matrix4x4 mvp = camera.getMVP(modelMatrix);
     // 渲染
     model.renderSolid(framebuffer, near, far, mvp, Vector3<float>(1.0f, 1.0f, 1.0f), 
-                       Vector3<float>(0.0f, 0.0f, 1.0f));
+                      Vector3<float>(0.707f, 0.0f, -0.707f));
     
     framebuffer.flipVertical();
     // Save to file

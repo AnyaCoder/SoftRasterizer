@@ -23,8 +23,8 @@ bool Texture::loadFromTGA(const std::string& filename) {
 
 Vector3<float> Texture::sample(float u, float v) const {
     // Wrap texture coordinates
-    u = u - floor(u);
-    v = v - floor(v);
+    u = u - floorf(u);
+    v = v - floorf(v);
     
     // Convert to pixel coordinates
     int x = static_cast<int>(u * (width - 1));

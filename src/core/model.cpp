@@ -110,81 +110,79 @@ void Model::renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4&
 
         // Get face normal (use provided normals or calculate from geometry)
         Vector3<float> normal;
-        // if (fi < faceNormals.size() && faceNormals[fi].size() >= 3) {
-        //     normal = (normals[faceNormals[fi][0]] + 
-        //              normals[faceNormals[fi][1]] + 
-        //              normals[faceNormals[fi][2]]).normalized();
-        // } else {
-        //     normal = calculateFaceNormal(face);
-        // }
-        normal = calculateFaceNormal(face);
-        // Calculate lighting intensity (dot product with light direction)
-        float intensity = normal.dot(lightDir.normalized());
-
-        if (intensity > 0) {
-            // 顶点数组
-            Vector4<float> clip_coords[3];
-            Vector2<float> tex_coords[3];
-            Vector3<float> world_coords[3];
-            float w_values[3];  // 存储 w 值用于透视校正
-
-            // 变换顶点
-            for (int j = 0; j < 3; j++) {
-                world_coords[j] = vertices[face[j]];
-                Vector4<float> v(world_coords[j], 1.0f);
-                clip_coords[j] = mvp * v;
-                w_values[j] = clip_coords[j].w;
-
-                if (fi < faceTexCoords.size() && j < faceTexCoords[fi].size()) {
-                    const auto& vt = texCoords[faceTexCoords[fi][j]];
-                    tex_coords[j] = Vector2<float>(vt.x, vt.y);
-                } else {
-                    tex_coords[j] = Vector2<float>(0, 0);
-                }
-            }
-
-            // 裁剪检查（简单版本：丢弃完全在近裁剪面外的三角形）
-            if (clip_coords[0].z < -w_values[0] && 
-                clip_coords[1].z < -w_values[1] && 
-                clip_coords[2].z < -w_values[2]) {
-                continue;
-            }
-
-            // 透视除法和深度映射
-            Vertex vertices[3];
-            for (int j = 0; j < 3; j++) {
-                if (w_values[j] <= 0) continue; // 防止除以0或负数
-                
-                // 透视除法
-                float invW = 1.0f / w_values[j];
-                Vector3<float> ndc(
-                    clip_coords[j].x * invW,
-                    clip_coords[j].y * invW,
-                    clip_coords[j].z * invW
-                );
-
-                // 视口变换
-                vertices[j].x = (ndc.x + 1.0f) * fb.width * 0.5f;
-                vertices[j].y = (ndc.y + 1.0f) * fb.height * 0.5f;
-                
-                // 将裁剪空间 z 映射到 [0,1] 范围用于深度测试
-                float zEye = clip_coords[j].z;  // 视空间 z（负值）
-                if (w_values[j] != 0) {
-                    // 将视空间 z 映射到 [0,1]，近处为 0，远处为 1
-                    vertices[j].z = (1.0f - (near * far / zEye * invW + near) / (far - near)) * 0.5f + 0.5f;
-                } else {
-                    vertices[j].z = 1.0f; // 默认最远
-                }
-
-                // 透视校正纹理坐标
-                vertices[j].u = tex_coords[j].x * invW;
-                vertices[j].v = tex_coords[j].y * invW;
-                vertices[j].w = invW;  // 存储 1/w 用于插值
-            }
-
-            Vector3<float> shadedColor = color * intensity;
-            fb.drawTriangle(vertices[0], vertices[1], vertices[2], 
-                          shadedColor, diffuseTexture);
+        if (fi < faceNormals.size() && faceNormals[fi].size() >= 3) {
+            normal = (normals[faceNormals[fi][0]] + 
+                     normals[faceNormals[fi][1]] + 
+                     normals[faceNormals[fi][2]]).normalized();
+        } else {
+            normal = calculateFaceNormal(face);
         }
+        
+        // Calculate lighting intensity (dot product with light direction)
+        float intensity = -normal.dot(lightDir.normalized());
+        // 顶点数组
+        Vector4<float> clip_coords[3];
+        Vector2<float> tex_coords[3];
+        Vector3<float> world_coords[3];
+        float w_values[3];  // 存储 w 值用于透视校正
+
+        // 变换顶点
+        for (int j = 0; j < 3; j++) {
+            world_coords[j] = vertices[face[j]];
+            Vector4<float> v(world_coords[j], 1.0f);
+            clip_coords[j] = mvp * v;
+            w_values[j] = clip_coords[j].w;
+
+            if (fi < faceTexCoords.size() && j < faceTexCoords[fi].size()) {
+                const auto& vt = texCoords[faceTexCoords[fi][j]];
+                tex_coords[j] = Vector2<float>(vt.x, vt.y);
+            } else {
+                tex_coords[j] = Vector2<float>(0, 0);
+            }
+        }
+
+        // 裁剪检查（简单版本：丢弃完全在近裁剪面外的三角形）
+        if (clip_coords[0].z < -w_values[0] && 
+            clip_coords[1].z < -w_values[1] && 
+            clip_coords[2].z < -w_values[2]) {
+            continue;
+        }
+
+        // 透视除法和深度映射
+        Vertex vertices[3];
+        for (int j = 0; j < 3; j++) {
+            if (w_values[j] <= 0) continue; // 防止除以0或负数
+            
+            // 透视除法
+            float invW = 1.0f / w_values[j];
+            Vector3<float> ndc(
+                clip_coords[j].x * invW,
+                clip_coords[j].y * invW,
+                clip_coords[j].z * invW
+            );
+
+            // 视口变换
+            vertices[j].x = static_cast<int>((ndc.x + 1.0f) * fb.width * 0.5f);
+            vertices[j].y = static_cast<int>((ndc.y + 1.0f) * fb.height * 0.5f);
+            
+            // 将裁剪空间 z 映射到 [0,1] 范围用于深度测试
+            float zEye = clip_coords[j].z;  // 视空间 z（负值）
+            if (w_values[j] != 0) {
+                // 将视空间 z 映射到 [0,1]，近处为 0，远处为 1
+                vertices[j].z = (1.0f - (near * far / zEye * invW + near) / (far - near)) * 0.5f + 0.5f;
+            } else {
+                vertices[j].z = 1.0f; // 默认最远
+            }
+
+            // 透视校正纹理坐标
+            vertices[j].u = tex_coords[j].x * invW;
+            vertices[j].v = tex_coords[j].y * invW;
+            vertices[j].w = invW;  // 存储 1/w 用于插值
+        }
+
+        Vector3<float> shadedColor = color * (intensity <= 0 ? 0.0f : intensity);
+        fb.drawTriangle(vertices[0], vertices[1], vertices[2], 
+                        shadedColor, diffuseTexture);
     }
+    
 }
