@@ -19,6 +19,19 @@ Matrix4x4 Camera::getMVP(const Matrix4x4& modelMatrix) const {
     return m_projMatrix * m_viewMatrix * modelMatrix;
 }
 
+const vec3f& Camera::getPosition() const {
+    return m_position;
+}
+
+const Matrix4x4& Camera::getViewMatrix() const {
+    return m_viewMatrix;
+}
+
+const Matrix4x4& Camera::getProjectionMatrix() const {
+    return m_projMatrix;
+}
+
+
 void Camera::setPosition(const vec3f& position) {
     m_position = position;
     updateViewMatrix();

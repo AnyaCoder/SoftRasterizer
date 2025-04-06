@@ -10,6 +10,7 @@ struct Vector2 {
     Vector2 operator+(const Vector2& v) const { return Vector2(x + v.x, y + v.y); }
     Vector2 operator-(const Vector2& v) const { return Vector2(x - v.x, y - v.y); }
     Vector2 operator*(T s) const { return Vector2(x * s, y * s); }
+    Vector2& operator*=(T s) { x *= s; y *= s; return *this; }
     T dot(const Vector2& v) const { return x * v.x + y * v.y; }
     float length() const { return sqrtf(x * x + y * y); }
     Vector2 normalized() const { float l = length(); return Vector2(x / l, y / l); }
@@ -23,9 +24,10 @@ struct Vector3 {
     Vector3(T x, T y, T z) : x(x), y(y), z(z) {}
     
     Vector3 operator+(const Vector3& v) const { return Vector3(x + v.x, y + v.y, z + v.z); }
+    Vector3 operator-() const { return Vector3(-x, -y, -z); }
     Vector3 operator-(const Vector3& v) const { return Vector3(x - v.x, y - v.y, z - v.z); }
     Vector3 operator*(T s) const { return Vector3(x * s, y * s, z * s); }
-    Vector3 operator*(const Vector3& v) { return Vector3(x* v.x, y * v.y, z * v.z); }
+    Vector3 operator*(const Vector3& v) { return Vector3(x * v.x, y * v.y, z * v.z); }
     T dot(const Vector3& v) const { return x * v.x + y * v.y + z * v.z; }
     Vector3 cross(const Vector3& v) const {
         return Vector3(
@@ -44,6 +46,10 @@ struct Vector4 {
     
     Vector4() : x(0), y(0), z(0), w(0) {}
     Vector4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
+    Vector4 operator+(const Vector4& v) const { return Vector4(x + v.x, y + v.y, z + v.z, w + v.w); }
+    Vector4 operator-(const Vector4& v) const { return Vector4(x - v.x, y - v.y, z - v.z, w - v.w); }
+    Vector4 operator*(const Vector4& v) const { return Vector4(x * v.x, y * v.y, z * v.z, w * v.w); }
+    Vector4 operator*(T s) const { return Vector4(x * s, y * s, z * s, w * s); }
     Vector4(const Vector3<T>& v, T w) : x(v.x), y(v.y), z(v.z), w(w) {}
     
     Vector3<T> xyz() const { return Vector3<T>(x, y, z); }

@@ -5,21 +5,40 @@
 #include "math/matrix.h"
 #include "core/texture.h"
 
-class Framebuffer;
-
 class Model {
 public:
-    std::vector<vec3f> vertices;
-    std::vector<vec3f> texCoords;
-    std::vector<vec3f> normals;
-    std::vector<std::vector<int>> faces; // Stores vertex indices
-    std::vector<std::vector<int>> faceTexCoords; // Stores texture coordinate indices
-    std::vector<std::vector<int>> faceNormals; // Stores normal indices
-    Texture diffuseTexture;
+    struct Face {
+        int vertIndex[3];
+        int uvIndex[3];
+        int normIndex[3];
+
+        Face() = default;
+    };
+
+    Model() = default;
 
     bool loadFromObj(const std::string& filename);
-    bool loadDiffuseTexture(const std::string& filename);
-    void renderWireframe(Framebuffer& fb, const vec3f& color);
-    void renderSolid(Framebuffer& fb, float near, float far, const Matrix4x4& mvp, const vec3f& color, const vec3f& lightDir);
-    vec3f calculateFaceNormal(const std::vector<int>& faceIndices) const;
+    // Texture loading now returns a Texture object or loads into internal storage
+    bool loadDiffuseTexture(const std::string& filename); // Keep for loading
+
+    // Accessors for geometry data
+    size_t numVertices() const { return vertices.size(); }
+    size_t numFaces() const { return faces.size(); }
+    size_t numNormals() const { return normals.size(); }
+    size_t numUVs() const { return uvs.size(); }
+
+    const Vector3<float>& getVertex(int index) const;
+    const Vector3<float>& getNormal(int index) const;
+    const Vector2<float>& getUV(int index) const;
+    const Face& getFace(int index) const;
+
+    const Texture& getDiffuseTexture() const { return diffuseTexture; } // Getter for texture
+
+    std::vector<Vector3<float>> vertices;
+    std::vector<Vector3<float>> normals;
+    std::vector<Vector2<float>> uvs;
+    std::vector<Face> faces;
+    Texture diffuseTexture; // Store the loaded texture
+
+    // bool parseFace(const std::string& line, Face& face); // Example helper
 };

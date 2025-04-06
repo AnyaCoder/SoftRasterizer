@@ -32,8 +32,9 @@ bool Framebuffer::saveToTGA(const std::string& filename) {
             file.write(color, 3);
         }
     }
-
-    return true;
+    
+    file.close();
+    return !file.fail();
 }
 
 bool loadTGA(const std::string& filename, int& width, int& height, std::vector<unsigned char>& data) {

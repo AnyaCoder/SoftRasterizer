@@ -7,6 +7,9 @@ public:
     Camera(const vec3f& position, const vec3f& target, const vec3f& up);
     void setPerspective(float fovDegrees, float aspectRatio, float near, float far);
     Matrix4x4 getMVP(const Matrix4x4& modelMatrix) const;
+    const vec3f& getPosition() const;
+    const Matrix4x4& getViewMatrix() const;
+    const Matrix4x4& getProjectionMatrix() const;
     void setPosition(const vec3f& position);
 
 private:
