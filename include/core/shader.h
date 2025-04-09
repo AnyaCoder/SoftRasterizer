@@ -7,7 +7,7 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <any> // For generic uniforms, or use specific setters
+#include <memory>
 
 // Data input to the vertex shader (per vertex)
 struct VertexInput {
@@ -23,6 +23,7 @@ struct Varyings {
     vec3f worldPosition;
     vec3f worldNormal; // Need to transform normal correctly
     vec2f uv;
+    Material material;
     // Add other interpolated data as needed
 };
 
@@ -37,9 +38,14 @@ public:
     Matrix4x4 uniform_ProjectionMatrix;
     Matrix4x4 uniform_MVP; // Model * View * Projection
     Matrix4x4 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
+    vec3f uniform_AmbientColor;
+    vec3f uniform_DiffuseColor;
+    vec3f uniform_SpecularColor;
+    int uniform_Shininess;
+    Texture uniform_DiffuseTexture;
     vec3f uniform_CameraPosition;
     std::vector<Light> uniform_Lights;
-    Material uniform_Material;
+
     vec3f uniform_AmbientLight = {0.1f, 0.1f, 0.1f}; // Global ambient term
 
     // --- Shader Stages ---

@@ -26,19 +26,17 @@ int main() {
         return 1;
     }
 
+    // Create Material for the model
+    Material headMaterial(std::make_shared<BlinnPhongShader>());
     // Load texture into the model itself
-    if (!model.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga")) {
+    if (!headMaterial.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga")) {
         std::cerr << "Failed to load texture" << std::endl;
         // Decide if this is fatal - maybe render without texture?
         // return 1;
     }
 
-    // Create Material for the model
-    Material headMaterial;
     headMaterial.shininess = 100; // Set Blinn-Phong shininess
-    headMaterial.specularColor = Vector3<float>(0.6f, 0.6f, 0.6f);
-    // Assign model's texture to the material
-    headMaterial.diffuseTexture = model.getDiffuseTexture();
+    headMaterial.specularColor = Vector3<float>(0.3f, 0.3f, 0.3f);
 
 
     // --- Setup Camera ---
@@ -56,37 +54,19 @@ int main() {
 
     // --- Setup Lights ---
     std::vector<Light> lights;
-    // Light 1: Directional Light (like sun)
     Light dirLight(LightType::DIRECTIONAL);
-    dirLight.direction = Vector3<float>(0.707f, 0.0f, -0.707f).normalized(); // From top-right-front
+    dirLight.direction = Vector3<float>(0.707f, 0.0f, -0.707f).normalized();
     dirLight.color = Vector3<float>(1.0f, 1.0f, 1.0f);
     dirLight.intensity = 1.0f;
     lights.push_back(dirLight);
-
-    // Light 2: Point Light (example)
-    // Light pointLight(LightType::POINT);
-    // pointLight.position = Vector3<float>(-2.5f, 2.0f, 2.0f); // Position in world space
-    // pointLight.color = Vector3<float>(0.2f, 0.7f, 0.2f); // Greenish light
-    // pointLight.intensity = 1.5f;
-    // Add attenuation factors if implemented in shader
-    // lights.push_back(pointLight);
-
-    renderer.setLights(lights); // Pass lights to renderer
-
-
-    // --- Setup Shader ---
-    auto shader = std::make_shared<BlinnPhongShader>();
-    // Set global ambient light level (can be part of renderer/scene settings too)
-    shader->uniform_AmbientLight = Vector3<float>(0.15f, 0.15f, 0.15f);
-    renderer.setShader(shader);
-
+    renderer.setLights(lights);
 
     // --- Render Scene ---
     renderer.clear(Vector3<float>(0.5f, 0.5f, 0.5f)); // Dark grey background
 
     auto modelMatrix = Matrix4x4::identity();
     // Can apply model transformations here:
-    // modelMatrix = Matrix4x4::translation(0, -0.5, 0) * Matrix4x4::rotationY(M_PI / 4.0);
+    // modelMatrix = Matrix4x4::translation(0, 0.5, 0) * Matrix4x4::rotationY(3.14159f / 3.0);
 
     // Pass model, its transform, and its material to the renderer
     renderer.drawModel(model, modelMatrix, headMaterial);

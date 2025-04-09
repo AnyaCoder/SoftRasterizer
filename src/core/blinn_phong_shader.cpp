@@ -25,7 +25,7 @@ Varyings BlinnPhongShader::vertex(const VertexInput& input) {
 
     // Calculate world position
     vec4f worldPos4 = uniform_ModelMatrix * modelPos4;
-    output.worldPosition = Vector3<float>(worldPos4.x, worldPos4.y, worldPos4.z);
+    output.worldPosition = vec3f(worldPos4.x, worldPos4.y, worldPos4.z);
 
     // Transform normal to world space using Normal Matrix
     vec4f modelNormal4(input.normal, 0.0f); // 0.0f w for direction
@@ -40,32 +40,32 @@ Varyings BlinnPhongShader::vertex(const VertexInput& input) {
     return output;
 }
 
-bool BlinnPhongShader::fragment(const Varyings& input, Vector3<float>& outColor) {
-    Vector3<float> N = input.worldNormal.normalized(); // Should already be normalized, but safety first
-    Vector3<float> V = (uniform_CameraPosition - input.worldPosition).normalized(); // View direction
+bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
+    vec3f N = input.worldNormal.normalized(); // Should already be normalized, but safety first
+    vec3f V = (uniform_CameraPosition - input.worldPosition).normalized(); // View direction
 
     // Material properties for this fragment
-    Vector3<float> matDiffuse = uniform_Material.diffuseColor;
-    if (uniform_Material.hasDiffuseTexture()) {
-        matDiffuse = matDiffuse * uniform_Material.diffuseTexture.sample(input.uv.x, input.uv.y);
+    vec3f matDiffuse = uniform_DiffuseColor;
+    if (!uniform_DiffuseTexture.empty()) {
+        matDiffuse = matDiffuse * uniform_DiffuseTexture.sample(input.uv.x, input.uv.y);
     }
-    Vector3<float> matSpecular = uniform_Material.specularColor;
+    vec3f matSpecular = uniform_SpecularColor;
     // Add specular texture sampling if implemented
-    int matShininess = uniform_Material.shininess;
+    int matShininess = uniform_Shininess;
 
     // Start with global ambient term
-    Vector3<float> totalColor = uniform_AmbientLight * uniform_Material.ambientColor; // Use material's ambient property
+    vec3f totalColor = uniform_AmbientLight * uniform_AmbientColor; // Use material's ambient property
 
     // Accumulate light contributions
     for (const auto& light : uniform_Lights) {
-        Vector3<float> L;       // Light direction
-        Vector3<float> lightCol = light.color * light.intensity;
+        vec3f L;       // Light direction
+        vec3f lightCol = light.color * light.intensity;
         float attenuation = 1.0f; // For point lights
 
         if (light.type == LightType::DIRECTIONAL) {
             L = -light.direction.normalized(); // Direction TO the light
         } else if (light.type == LightType::POINT) {
-            Vector3<float> lightVec = light.position - input.worldPosition;
+            vec3f lightVec = light.position - input.worldPosition;
             float dist = lightVec.length();
             L = lightVec.normalized();
             // Add attenuation calculation here based on distance 'dist' if needed
@@ -76,12 +76,12 @@ bool BlinnPhongShader::fragment(const Varyings& input, Vector3<float>& outColor)
 
         // Diffuse (Lambertian)
         float diffFactor = std::max(0.0f, N.dot(L));
-        Vector3<float> diffuse = matDiffuse * lightCol * diffFactor * attenuation;
+        vec3f diffuse = matDiffuse * lightCol * diffFactor * attenuation;
 
         // Specular (Blinn-Phong)
-        Vector3<float> H = (L + V).normalized(); // Halfway vector
+        vec3f H = (L + V).normalized(); // Halfway vector
         float specFactor = fastPow(std::max(0.0f, N.dot(H)), matShininess);
-        Vector3<float> specular = matSpecular * lightCol * specFactor * attenuation;
+        vec3f specular = matSpecular * lightCol * specFactor * attenuation;
 
         // Add to total color
         totalColor = totalColor + diffuse + specular;

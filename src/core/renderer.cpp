@@ -7,9 +7,6 @@
 
 Renderer::Renderer(Framebuffer& fb) : framebuffer(fb) {}
 
-void Renderer::setShader(std::shared_ptr<Shader> sh) {
-    currentShader = sh;
-}
 
 void Renderer::setLights(const std::vector<Light>& l) {
     lights = l;
@@ -21,7 +18,7 @@ void Renderer::setCamera(const Camera& cam) {
     cameraPosition = cam.getPosition(); // Need camera world position for lighting
 }
 
-void Renderer::clear(const Vector3<float>& color) {
+void Renderer::clear(const vec3f& color) {
     framebuffer.clear(color);
     framebuffer.clearZBuffer();
 }
@@ -46,22 +43,23 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
 
 
 void Renderer::drawModel(Model& model, const Matrix4x4& modelMatrix, const Material& material) {
-    if (!currentShader) {
+    if (!material.shader) {
         std::cerr << "Error: No shader set for rendering!" << std::endl;
         return;
     }
-
+    
     // --- Setup Uniforms ---
-    currentShader->uniform_ModelMatrix = modelMatrix;
-    currentShader->uniform_ViewMatrix = viewMatrix;
-    currentShader->uniform_ProjectionMatrix = projectionMatrix;
-    currentShader->uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
-    currentShader->uniform_NormalMatrix = modelMatrix.inverse().transpose();
-
-    currentShader->uniform_CameraPosition = cameraPosition;
-    currentShader->uniform_Lights = lights;
-    currentShader->uniform_Material = material; // Pass material (including texture if loaded)
-
+    material.shader->uniform_ModelMatrix = modelMatrix;
+    material.shader->uniform_ViewMatrix = viewMatrix;
+    material.shader->uniform_ProjectionMatrix = projectionMatrix;
+    material.shader->uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
+    material.shader->uniform_NormalMatrix = modelMatrix.inverse().transpose();
+    material.shader->uniform_CameraPosition = cameraPosition;
+    material.shader->uniform_Lights = lights;
+    material.shader->uniform_DiffuseColor = material.diffuseColor;
+    material.shader->uniform_SpecularColor = material.specularColor;
+    material.shader->uniform_Shininess = material.shininess;
+    material.shader->uniform_DiffuseTexture = material.diffuseTexture;
 
     // --- Vertex Processing & Triangle Assembly ---
     for (int i = 0; i < model.numFaces(); ++i) {
@@ -76,7 +74,7 @@ void Renderer::drawModel(Model& model, const Matrix4x4& modelMatrix, const Mater
             vInput.normal = model.getNormal(face.normIndex[j]);
             vInput.uv = model.getUV(face.uvIndex[j]);
 
-            varyings[j] = currentShader->vertex(vInput);
+            varyings[j] = material.shader->vertex(vInput);
 
             // 检查是否在裁剪空间范围内
             float w = varyings[j].clipPosition.w;
@@ -94,7 +92,7 @@ void Renderer::drawModel(Model& model, const Matrix4x4& modelMatrix, const Mater
         for (int j = 0; j < 3; ++j) {
             if (varyings[j].clipPosition.w <= 0) continue; // 防止除以0或负数
             float invW = 1.0f / varyings[j].clipPosition.w;
-            Vector3<float> ndcPos = {
+            vec3f ndcPos = {
                 varyings[j].clipPosition.x * invW,
                 varyings[j].clipPosition.y * invW,
                 varyings[j].clipPosition.z * invW
@@ -117,7 +115,7 @@ void Renderer::drawModel(Model& model, const Matrix4x4& modelMatrix, const Mater
             if (signedArea < 0) {
                 continue;
             }
-            drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2]);
+            drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
         }
     }
 }
@@ -157,7 +155,7 @@ void Renderer::drawLine(int x0, int y0, int x1, int y1, const vec3f& color) {
     }
 }
 
-void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2) {
+void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material) {
     // Sort vertices by y-coordinate (v0.y <= v1.y <= v2.y)
     if (v0.y > v1.y) { std::swap(v0, v1); }
     if (v0.y > v2.y) { std::swap(v0, v2); }
@@ -168,18 +166,18 @@ void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2) {
 
     // Draw top part (v0.y to v1.y) - Flat bottom triangle
     if (v0.y < v1.y) {
-        drawScanlines(v0.y, v1.y, v0, v2, v0, v1);
+        drawScanlines(v0.y, v1.y, v0, v2, v0, v1, material);
     }
 
     // Draw bottom part (v1.y to v2.y) - Flat top triangle
     if (v1.y < v2.y) {
-        drawScanlines(v1.y, v2.y, v1, v2, v0, v2); // Note edge AC is still v0 -> v2
+        drawScanlines(v1.y, v2.y, v1, v2, v0, v2, material); // Note edge AC is still v0 -> v2
     }
 }
 
 
 void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, const ScreenVertex& vEndA,
-            const ScreenVertex& vStartB, const ScreenVertex& vEndB) {
+            const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material) {
 
     float dyA = static_cast<float>(vEndA.y - vStartA.y);
     float dyB = static_cast<float>(vEndB.y - vStartB.y);
@@ -239,8 +237,8 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
 
 
             // --- Fragment Shader ---
-            Vector3<float> fragmentColor;
-            if (currentShader->fragment(finalVaryings, fragmentColor)) {
+            vec3f fragmentColor;
+            if (material.shader->fragment(finalVaryings, fragmentColor)) {
                 // Write to framebuffer if fragment not discarded
                 framebuffer.setPixel(x, y, fragmentColor, depth);
             }

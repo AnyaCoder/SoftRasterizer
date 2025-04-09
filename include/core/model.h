@@ -18,8 +18,6 @@ public:
     Model() = default;
 
     bool loadFromObj(const std::string& filename);
-    // Texture loading now returns a Texture object or loads into internal storage
-    bool loadDiffuseTexture(const std::string& filename); // Keep for loading
 
     // Accessors for geometry data
     size_t numVertices() const { return vertices.size(); }
@@ -32,13 +30,9 @@ public:
     const Vector2<float>& getUV(int index) const;
     const Face& getFace(int index) const;
 
-    const Texture& getDiffuseTexture() const { return diffuseTexture; } // Getter for texture
-
     std::vector<Vector3<float>> vertices;
     std::vector<Vector3<float>> normals;
     std::vector<Vector2<float>> uvs;
     std::vector<Face> faces;
-    Texture diffuseTexture; // Store the loaded texture
 
-    // bool parseFace(const std::string& line, Face& face); // Example helper
 };

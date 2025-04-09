@@ -23,7 +23,6 @@ class Renderer {
 public:
     Renderer(Framebuffer& fb);
 
-    void setShader(std::shared_ptr<Shader> sh);
     void setLights(const std::vector<Light>& l);
     void setCamera(const Camera& cam); // Store view/projection matrices
 
@@ -32,16 +31,15 @@ public:
 
 private:
     Framebuffer& framebuffer;
-    std::shared_ptr<Shader> currentShader;
     std::vector<Light> lights;
     Matrix4x4 viewMatrix;
     Matrix4x4 projectionMatrix;
     Vector3<float> cameraPosition;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
-    void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2);
+    void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material);
     void drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, const ScreenVertex& vEndA,
-        const ScreenVertex& vStartB, const ScreenVertex& vEndB);
+        const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material);
    
     // Helper for perspective correct interpolation
     template <typename T>

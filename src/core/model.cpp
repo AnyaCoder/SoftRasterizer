@@ -80,7 +80,4 @@ bool Model::loadFromObj(const std::string& filename) {
     return true;
 }
 
-bool Model::loadDiffuseTexture(const std::string& filename) {
-    return diffuseTexture.loadFromTGA(filename);
-}
 
