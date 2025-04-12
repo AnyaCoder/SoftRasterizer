@@ -1,4 +1,4 @@
-// blinn_phong_shader.h
+// include/core/blinn_phong_shader.h
 #pragma once
 
 #include "shader.h"

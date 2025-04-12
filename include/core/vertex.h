@@ -1,3 +1,4 @@
+// include/core/vertex.h
 #pragma once
 
 struct Vertex {

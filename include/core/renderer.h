@@ -1,4 +1,4 @@
-// renderer.h
+// include/core/renderer.h
 #pragma once
 
 #include "framebuffer.h"

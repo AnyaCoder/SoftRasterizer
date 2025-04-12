@@ -1,3 +1,4 @@
+// include/core/light.h
 #pragma once
 
 #include "math/vector.h"

@@ -1,3 +1,4 @@
+// include/core/texture.h
 #pragma once
 #include "math/vector.h"
 #include <vector>
