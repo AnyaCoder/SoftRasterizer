@@ -44,7 +44,7 @@ bool loadTGA(const std::string& filename, int& width, int& height, std::vector<u
 
     TGAHeader header;
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
-    std::cerr << "datatypecode: " << (int)header.datatypecode << ", bitsperpixel: " << (int)header.bitsperpixel << std::endl;
+    std::cerr << "Filename: " << filename << " , datatypecode: " << (int)header.datatypecode << ", bitsperpixel: " << (int)header.bitsperpixel << std::endl;
 
     // Support both uncompressed (2) and RLE compressed (10) RGB images
     if ((header.datatypecode != 2 && header.datatypecode != 10) || header.bitsperpixel != 24) {

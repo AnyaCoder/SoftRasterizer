@@ -30,7 +30,13 @@ int main() {
     Material headMaterial(std::make_shared<BlinnPhongShader>());
     // Load texture into the model itself
     if (!headMaterial.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga")) {
-        std::cerr << "Failed to load texture" << std::endl;
+        std::cerr << "Failed to load diffuse texture" << std::endl;
+        // Decide if this is fatal - maybe render without texture?
+        // return 1;
+    }
+
+    if (!headMaterial.loadNormalTexture("resources/normal_tangent/african_head_nm_tangent.tga")) {
+        std::cerr << "Failed to load normal texture" << std::endl;
         // Decide if this is fatal - maybe render without texture?
         // return 1;
     }
@@ -43,7 +49,7 @@ int main() {
     float near = 0.1f;
     float far = 100.0f;
     Camera camera(
-        Vector3<float>(0, 1, 3),   // Camera position (raised Y slightly)
+        Vector3<float>(-2, 0, 3),   // Camera position (raised Y slightly)
         Vector3<float>(0, 0, 0),    // Target point
         Vector3<float>(0, 1, 0)     // Up direction
     );

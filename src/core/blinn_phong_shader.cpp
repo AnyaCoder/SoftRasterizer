@@ -22,26 +22,60 @@ T fastPow(T base, int n) {
 Varyings BlinnPhongShader::vertex(const VertexInput& input) {
     Varyings output;
     vec4f modelPos4(input.position, 1.0f); // Assuming vec4f exists or use Vector4<float>
+    vec4f modelNormal4(input.normal, 0.0f); // 0.0f w for direction
+    vec4f modelTangent4(input.tangent, 0.0f);
+    vec4f modelBitangent4(input.bitangent, 0.0f);
 
     // Calculate world position
     vec4f worldPos4 = uniform_ModelMatrix * modelPos4;
-    output.worldPosition = vec3f(worldPos4.x, worldPos4.y, worldPos4.z);
+    output.worldPosition = worldPos4.xyz();
 
     // Transform normal to world space using Normal Matrix
-    vec4f modelNormal4(input.normal, 0.0f); // 0.0f w for direction
-    vec4f worldNormal4 = uniform_NormalMatrix * modelNormal4;
-    output.worldNormal = worldNormal4.xyz().normalized();
+    output.normal    = (uniform_NormalMatrix * modelNormal4).xyz().normalized();
+    output.tangent   = (uniform_NormalMatrix * modelTangent4).xyz().normalized();
+    output.bitangent = (uniform_NormalMatrix * modelBitangent4).xyz().normalized();
 
     // Pass UV coordinates
     output.uv = input.uv;
 
     // Calculate clip space position
     output.clipPosition = uniform_MVP * modelPos4;
+
     return output;
 }
 
 bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
-    vec3f N = input.worldNormal.normalized(); // Should already be normalized, but safety first
+    // --- Determine Normal ---
+    vec3f N;
+    if (!uniform_NormalTexture.empty()) {
+        // Sample normal map (returns color in [0, 1] range)
+        vec3f tangentNormalSample = uniform_NormalTexture.sample(input.uv.x, input.uv.y);
+
+        // Map color [0, 1] to normal vector [-1, 1]
+        vec3f tangentNormal = (tangentNormalSample * 2.0f) - vec3f(1.0f, 1.0f, 1.0f);
+        tangentNormal = tangentNormal.normalized(); // Ensure it's a unit vector
+
+        // Get interpolated TBN basis vectors (renormalize after interpolation)
+        vec3f T = input.tangent.normalized();
+        vec3f B = input.bitangent.normalized();
+        vec3f N_geom = input.normal.normalized(); // Interpolated geometric normal
+
+        // Optional: Re-orthogonalize TBN frame here if interpolation artifacts are visible
+        // T = (T - N_geom * N_geom.dot(T)).normalized();
+        // B = N_geom.cross(T); // Can recalculate B
+
+        // Transform normal from tangent space to world space
+        // N = TBN * tangentNormal (matrix multiplication)
+        // Or manually:
+        N = T * tangentNormal.x + B * tangentNormal.y + N_geom * tangentNormal.z;
+        N = N.normalized(); // Final world-space normal for lighting
+
+    } else {
+        // Use interpolated geometric normal if no normal map
+        N = input.normal.normalized();
+    }
+
+    // --- Lighting Calculation ---
     vec3f V = (uniform_CameraPosition - input.worldPosition).normalized(); // View direction
 
     // Material properties for this fragment
@@ -49,9 +83,6 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     if (!uniform_DiffuseTexture.empty()) {
         matDiffuse = matDiffuse * uniform_DiffuseTexture.sample(input.uv.x, input.uv.y);
     }
-    vec3f matSpecular = uniform_SpecularColor;
-    // Add specular texture sampling if implemented
-    int matShininess = uniform_Shininess;
 
     // Start with global ambient term
     vec3f totalColor = uniform_AmbientLight * uniform_AmbientColor; // Use material's ambient property
@@ -68,8 +99,10 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
             vec3f lightVec = light.position - input.worldPosition;
             float dist = lightVec.length();
             L = lightVec.normalized();
-            // Add attenuation calculation here based on distance 'dist' if needed
-            // attenuation = 1.0f / (constant + linear * dist + quadratic * dist * dist);
+            // Example simple distance attenuation (inverse square)
+            // attenuation = 1.0f / (1.0f + 0.1f * dist + 0.01f * dist * dist); // Adjust constants as needed
+            attenuation = 1.0f / (dist * dist); // Simple inverse square (can be harsh)
+            attenuation = std::min(1.0f, std::max(0.0f, attenuation)); // Clamp attenuation
         } else {
             continue; // Skip unknown light types
         }
@@ -80,8 +113,8 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
 
         // Specular (Blinn-Phong)
         vec3f H = (L + V).normalized(); // Halfway vector
-        float specFactor = fastPow(std::max(0.0f, N.dot(H)), matShininess);
-        vec3f specular = matSpecular * lightCol * specFactor * attenuation;
+        float specFactor = fastPow(std::max(0.0f, N.dot(H)), uniform_Shininess);
+        vec3f specular = uniform_SpecularColor * lightCol * specFactor * attenuation;
 
         // Add to total color
         totalColor = totalColor + diffuse + specular;

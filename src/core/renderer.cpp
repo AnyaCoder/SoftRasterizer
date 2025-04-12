@@ -30,9 +30,11 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
     // Interpolate each component perspective-correctly
     // Note: clipPosition is usually not needed in fragment shader, but other varyings are.
     result.worldPosition = perspectiveCorrectInterpolate(t, start.worldPosition, end.worldPosition, startInvW, endInvW);
-    result.worldNormal = perspectiveCorrectInterpolate(t, start.worldNormal, end.worldNormal, startInvW, endInvW); // Re-normalize in fragment shader
     result.uv = perspectiveCorrectInterpolate(t, start.uv, end.uv, startInvW, endInvW);
-    // No need to interpolate clipPosition usually
+    // Interpolate TBN vectors (will be normalized in fragment shader)
+    result.normal = perspectiveCorrectInterpolate(t, start.normal, end.normal, startInvW, endInvW);
+    result.tangent = perspectiveCorrectInterpolate(t, start.tangent, end.tangent, startInvW, endInvW);
+    result.bitangent = perspectiveCorrectInterpolate(t, start.bitangent, end.bitangent, startInvW, endInvW);
 
     return result;
 }
@@ -44,18 +46,27 @@ void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& 
         return;
     }
     
+    if (!material.normalTexture.empty() && model.numTangents() == 0) {
+        std::cerr << "Warning: Material has normal map but model tangents not calculated/loaded. Call model.calculateTangents()." << std::endl;
+    }
+
     // --- Setup Uniforms ---
     material.shader->uniform_ModelMatrix = modelMatrix;
     material.shader->uniform_ViewMatrix = viewMatrix;
     material.shader->uniform_ProjectionMatrix = projectionMatrix;
     material.shader->uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
+    
     material.shader->uniform_NormalMatrix = modelMatrix.inverse().transpose();
     material.shader->uniform_CameraPosition = cameraPosition;
     material.shader->uniform_Lights = lights;
+    
+    material.shader->uniform_AmbientColor = material.ambientColor;
     material.shader->uniform_DiffuseColor = material.diffuseColor;
     material.shader->uniform_SpecularColor = material.specularColor;
     material.shader->uniform_Shininess = material.shininess;
+    
     material.shader->uniform_DiffuseTexture = material.diffuseTexture;
+    material.shader->uniform_NormalTexture = material.normalTexture; // Set normal map
 
     // --- Vertex Processing & Triangle Assembly ---
     for (int i = 0; i < model.numFaces(); ++i) {
@@ -66,11 +77,18 @@ void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& 
 
         for (int j = 0; j < 3; ++j) {
             VertexInput vInput;
-            vInput.position = model.getVertex(face.vertIndex[j]);
-            vInput.normal = model.getNormal(face.normIndex[j]);
-            vInput.uv = model.getUV(face.uvIndex[j]);
 
-            varyings[j] = material.shader->vertex(vInput);
+            int vertIdx = face.vertIndex[j];
+            int uvIdx = face.uvIndex[j];
+            int normIdx = face.normIndex[j];
+
+            vInput.position  = model.getVertex(vertIdx);
+            vInput.normal    = model.getNormal(normIdx);
+            vInput.uv        = model.getUV(uvIdx);
+            vInput.tangent   = model.getTangent(vertIdx);
+            vInput.bitangent = model.getBitangent(vertIdx);
+
+            varyings[j]     = material.shader->vertex(vInput);
 
             // 检查是否在裁剪空间范围内
             float w = varyings[j].clipPosition.w;
@@ -158,7 +176,7 @@ void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, c
     if (v1.y > v2.y) { std::swap(v1, v2); }
 
     // Handle degenerate triangles (horizontal line)
-    if (v0.y == v2.y) return;
+    if (v0.y == v2.y || (v0.x == v1.x && v1.x == v2.x)) return;
 
     // Draw top part (v0.y to v1.y) - Flat bottom triangle
     if (v0.y < v1.y) {
@@ -177,6 +195,10 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
 
     float dyA = static_cast<float>(vEndA.y - vStartA.y);
     float dyB = static_cast<float>(vEndB.y - vStartB.y);
+
+    // Clamp yStart and yEnd to framebuffer bounds
+    yStart = std::max(0, yStart);
+    yEnd = std::min(framebuffer.getHeight() - 1, yEnd);
 
     for (int y = yStart; y <= yEnd; ++y) {
          // Calculate interpolation factors 't' along edges A (vStartA -> vEndA) and B (vStartB -> vEndB)

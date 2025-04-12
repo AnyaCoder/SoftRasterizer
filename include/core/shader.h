@@ -3,8 +3,9 @@
 
 #include "math/vector.h"
 #include "math/matrix.h"
-#include "light.h"
-#include "material.h"
+#include "core/light.h"
+#include "core/texture.h"
+#include "core/material.h"
 #include <vector>
 #include <map>
 #include <string>
@@ -15,16 +16,18 @@ struct VertexInput {
     vec3f position;
     vec3f normal;
     vec2f uv;
-    // Add tangent/bitangent if doing normal mapping
+    vec3f tangent;  
+    vec3f bitangent;
 };
 
 // Data output from vertex shader, interpolated for fragment shader
 struct Varyings {
     vec4f clipPosition; // Homogeneous coordinates (required!)
     vec3f worldPosition;
-    vec3f worldNormal; // Need to transform normal correctly
+    vec3f normal; // Need to transform normal correctly
     vec2f uv;
-    Material material;
+    vec3f tangent;
+    vec3f bitangent;
     // Add other interpolated data as needed
 };
 
@@ -32,21 +35,24 @@ class Shader {
 public:
     virtual ~Shader() = default;
 
-    // Uniforms (data constant per draw call)
-    // Using specific setters is often cleaner initially than std::any
+    // --- Uniforms --- (data constant per draw call) 
     mat4 uniform_ModelMatrix;
     mat4 uniform_ViewMatrix;
     mat4 uniform_ProjectionMatrix;
     mat4 uniform_MVP; // Model * View * Projection
     mat4 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
+    
+    // --- Material Properties --- (might be part of a Material uniform block later)
     vec3f uniform_AmbientColor;
     vec3f uniform_DiffuseColor;
     vec3f uniform_SpecularColor;
     int uniform_Shininess;
     Texture uniform_DiffuseTexture;
+    Texture uniform_NormalTexture;
+
+    // --- Lighting Uniforms ---
     vec3f uniform_CameraPosition;
     std::vector<Light> uniform_Lights;
-
     vec3f uniform_AmbientLight = {0.1f, 0.1f, 0.1f}; // Global ambient term
 
     // --- Shader Stages ---

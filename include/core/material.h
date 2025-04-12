@@ -12,6 +12,7 @@ struct Material {
     vec3f diffuseColor = {0.8f, 0.8f, 0.8f};
     vec3f specularColor = {0.5f, 0.5f, 0.5f};
     Texture diffuseTexture;
+    Texture normalTexture;
     int shininess = 32;
 
     std::shared_ptr<Shader> shader;
@@ -19,6 +20,10 @@ struct Material {
     
     bool loadDiffuseTexture(const std::string& filename) {
         return diffuseTexture.loadFromTGA(filename);
+    }
+
+    bool loadNormalTexture(const std::string& filename) {
+        return normalTexture.loadFromTGA(filename);
     }
     
 };
