@@ -1,8 +1,6 @@
-#include <fstream>
-#include <iostream>
-#include <vector>
+// src/io/tga_writer.cpp
 #include "core/framebuffer.h"
-#include "tga_writer.h"
+#include "io/tga_writer.h"
 
 
 bool Framebuffer::saveToTGA(const std::string& filename) {

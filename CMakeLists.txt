@@ -13,6 +13,7 @@ file(GLOB SOURCES
     "src/*.cpp"
     "src/core/*.cpp" 
     "src/io/*.cpp"
+    "src/math/*.cpp"
 )
 
 # 创建可执行文件

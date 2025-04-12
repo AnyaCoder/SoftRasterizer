@@ -28,7 +28,7 @@ struct Vector3 {
 };
 
 // 4x4矩阵
-struct Matrix4x4 {
+struct mat4 {
     float m[4][4];
     // 矩阵运算和变换...
 };

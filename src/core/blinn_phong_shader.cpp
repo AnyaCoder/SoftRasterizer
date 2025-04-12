@@ -1,4 +1,4 @@
-// blinn_phong_shader.cpp
+// src/core/blinn_phong_shader.cpp
 #include "core/blinn_phong_shader.h"
 #include <cmath>
 #include <algorithm>

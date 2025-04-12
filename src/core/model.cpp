@@ -1,3 +1,4 @@
+// src/core/model.cpp
 #include "core/model.h"
 #include "core/framebuffer.h"
 #include <fstream>

@@ -3,21 +3,20 @@
 
 #include "framebuffer.h"
 #include "shader.h"
-#include "model.h" // Include model to get access to mesh data
+#include "model.h"
 #include "light.h"
 #include "camera.h"
 #include "math/matrix.h"
 #include <vector>
-#include <memory> // For std::unique_ptr
+#include <memory>
 
-// Structure to hold vertex data after vertex shader and perspective divide/viewport transform
+
 struct ScreenVertex {
-    int x, y;        // Screen coordinates
-    float z;         // Depth (typically in NDC or adjusted screen space)
-    float invW;      // 1/w for perspective correct interpolation
-    Varyings varyings; // Store the full varying data
+    int x, y;
+    float z;
+    float invW;
+    Varyings varyings;
 };
-
 
 class Renderer {
 public:
@@ -26,14 +25,14 @@ public:
     void setLights(const std::vector<Light>& l);
     void setCamera(const Camera& cam); // Store view/projection matrices
 
-    void clear(const Vector3<float>& color);
-    void drawModel(Model& model, const Matrix4x4& modelMatrix, const Material& material);
+    void clear(const vec3f& color);
+    void drawModel(Model& model, const mat4& modelMatrix, const Material& material);
 
 private:
     Framebuffer& framebuffer;
     std::vector<Light> lights;
-    Matrix4x4 viewMatrix;
-    Matrix4x4 projectionMatrix;
+    mat4 viewMatrix;
+    mat4 projectionMatrix;
     Vector3<float> cameraPosition;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
@@ -41,12 +40,11 @@ private:
     void drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, const ScreenVertex& vEndA,
         const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material);
    
-    // Helper for perspective correct interpolation
     template <typename T>
     T perspectiveCorrectInterpolate(float t, const T& startVal, const T& endVal, float startInvW, float endInvW) const {
         float currentInvW = startInvW + (endInvW - startInvW) * t;
         if (std::abs(currentInvW) < 1e-6f) {
-            return (startVal + endVal) * 0.5f; // 返回平均值，避免突变
+            return (startVal + endVal) * 0.5f;
         }
 
         float currentW = 1.0f / currentInvW;
@@ -56,6 +54,5 @@ private:
         return currentOverW * currentW;
     }
 
-     // Overload for Varyings struct
     Varyings interpolateVaryings(float t, const Varyings& start, const Varyings& end, float startInvW, float endInvW) const;
 };

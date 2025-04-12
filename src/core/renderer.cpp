@@ -1,12 +1,8 @@
-// renderer.cpp
+// // src/core/renderer.cpp
 #include "core/renderer.h"
 #include "core/camera.h" // Include camera definition
-#include <algorithm>
-#include <cmath>
-#include <iostream>
 
 Renderer::Renderer(Framebuffer& fb) : framebuffer(fb) {}
-
 
 void Renderer::setLights(const std::vector<Light>& l) {
     lights = l;
@@ -42,7 +38,7 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
 }
 
 
-void Renderer::drawModel(Model& model, const Matrix4x4& modelMatrix, const Material& material) {
+void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& material) {
     if (!material.shader) {
         std::cerr << "Error: No shader set for rendering!" << std::endl;
         return;

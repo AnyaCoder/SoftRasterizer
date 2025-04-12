@@ -25,15 +25,15 @@ class Camera {
 public:
     Camera(const vec3f& position, const vec3f& target, const vec3f& up);
     void setPerspective(float fovDegrees, float aspectRatio, float near, float far);
-    Matrix4x4 getMVP(const Matrix4x4& modelMatrix) const;
+    mat4 getMVP(const mat4& modelMatrix) const;
     void setPosition(const vec3f& position);
 
 private:
     vec3f m_position;  // 相机位置
     vec3f m_target;    // 目标点
     vec3f m_up;        // 上方向
-    Matrix4x4 m_viewMatrix;     // 视图矩阵
-    Matrix4x4 m_projMatrix;     // 投影矩阵
+    mat4 m_viewMatrix;     // 视图矩阵
+    mat4 m_projMatrix;     // 投影矩阵
     void updateViewMatrix();    // 更新视图矩阵
 };
 ```
@@ -47,14 +47,14 @@ private:
 Camera::Camera(const vec3f& position, const vec3f& target, const vec3f& up)
     : m_position(position), m_target(target), m_up(up) {
     updateViewMatrix();
-    m_projMatrix = Matrix4x4::identity();
+    m_projMatrix = mat4::identity();
 }
 
 void Camera::setPerspective(float fovDegrees, float aspectRatio, float near, float far) {
-    m_projMatrix = Matrix4x4::perspective(fovDegrees * 3.1415926f / 180.0f, aspectRatio, near, far);
+    m_projMatrix = mat4::perspective(fovDegrees * 3.1415926f / 180.0f, aspectRatio, near, far);
 }
 
-Matrix4x4 Camera::getMVP(const Matrix4x4& modelMatrix) const {
+mat4 Camera::getMVP(const mat4& modelMatrix) const {
     return m_projMatrix * m_viewMatrix * modelMatrix;
 }
 
@@ -68,13 +68,13 @@ void Camera::updateViewMatrix() {
     vec3f right = forward.cross(m_up).normalized();
     vec3f up = right.cross(forward).normalized();
 
-    Matrix4x4 rotation;
+    mat4 rotation;
     rotation.m[0][0] = right.x;    rotation.m[0][1] = right.y;    rotation.m[0][2] = right.z;    rotation.m[0][3] = 0;
     rotation.m[1][0] = up.x;       rotation.m[1][1] = up.y;       rotation.m[1][2] = up.z;       rotation.m[1][3] = 0;
     rotation.m[2][0] = -forward.x; rotation.m[2][1] = -forward.y; rotation.m[2][2] = -forward.z; rotation.m[2][3] = 0;
     rotation.m[3][0] = 0;          rotation.m[3][1] = 0;          rotation.m[3][2] = 0;          rotation.m[3][3] = 1;
 
-    Matrix4x4 translation = Matrix4x4::translation(-m_position.x, -m_position.y, -m_position.z);
+    mat4 translation = mat4::translation(-m_position.x, -m_position.y, -m_position.z);
     m_viewMatrix = rotation * translation;
 }
 ```
@@ -99,8 +99,8 @@ int main() {
     Camera camera(vec3f(0, 0, 3), vec3f(0, 0, 0), vec3f(0, 1, 0));
     camera.setPerspective(45.0f, (float)width / height, near, far);
 
-    Matrix4x4 modelMatrix = Matrix4x4::identity();
-    Matrix4x4 mvp = camera.getMVP(modelMatrix);
+    mat4 modelMatrix = mat4::identity();
+    mat4 mvp = camera.getMVP(modelMatrix);
 
     model.renderSolid(framebuffer, near, far, mvp, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, -1.0f));
 

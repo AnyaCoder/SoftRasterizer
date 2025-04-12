@@ -1,4 +1,4 @@
-// include/core/ramebuffer.h
+// include/core/framebuffer.h
 #pragma once
 #include <vector>
 #include <string>

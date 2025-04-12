@@ -34,11 +34,11 @@ public:
 
     // Uniforms (data constant per draw call)
     // Using specific setters is often cleaner initially than std::any
-    Matrix4x4 uniform_ModelMatrix;
-    Matrix4x4 uniform_ViewMatrix;
-    Matrix4x4 uniform_ProjectionMatrix;
-    Matrix4x4 uniform_MVP; // Model * View * Projection
-    Matrix4x4 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
+    mat4 uniform_ModelMatrix;
+    mat4 uniform_ViewMatrix;
+    mat4 uniform_ProjectionMatrix;
+    mat4 uniform_MVP; // Model * View * Projection
+    mat4 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
     vec3f uniform_AmbientColor;
     vec3f uniform_DiffuseColor;
     vec3f uniform_SpecularColor;

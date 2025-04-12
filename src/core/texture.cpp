@@ -1,5 +1,6 @@
+// src/core/texture.cpp
 #include "core/texture.h"
-#include "../io/tga_writer.h"
+#include "io/tga_writer.h"
 
 bool Texture::loadFromTGA(const std::string& filename) {
     std::vector<unsigned char> data;

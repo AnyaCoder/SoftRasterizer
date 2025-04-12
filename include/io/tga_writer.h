@@ -1,5 +1,8 @@
 #pragma once
 #include <string>
+#include <vector>
+#include <fstream>
+#include <iostream>
 
 #pragma pack(push, 1)
 struct TGAHeader {

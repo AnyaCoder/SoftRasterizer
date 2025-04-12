@@ -64,9 +64,9 @@ int main() {
     // --- Render Scene ---
     renderer.clear(Vector3<float>(0.5f, 0.5f, 0.5f)); // Dark grey background
 
-    auto modelMatrix = Matrix4x4::identity();
+    auto modelMatrix = mat4::identity();
     // Can apply model transformations here:
-    // modelMatrix = Matrix4x4::translation(0, 0.5, 0) * Matrix4x4::rotationY(3.14159f / 3.0);
+    // modelMatrix = mat4::translation(0, 0.5, 0) * mat4::rotationY(3.14159f / 3.0);
 
     // Pass model, its transform, and its material to the renderer
     renderer.drawModel(model, modelMatrix, headMaterial);

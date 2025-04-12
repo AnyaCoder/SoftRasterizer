@@ -1,3 +1,4 @@
+// src/core/framebuffer.cpp
 #include "core/framebuffer.h"
 
 Framebuffer::Framebuffer(int w, int h) : width(w), height(h), pixels(w * h), zBuffer(w * h, 1.0f) {}

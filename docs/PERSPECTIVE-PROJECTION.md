@@ -34,16 +34,16 @@ model.renderSolid(framebuffer, vec3f(1.0f, 1.0f, 1.0f), vec3f(0.0f, 0.0f, 1.0f))
 float near = 0.1f;
 float far = 100.0f;
 
-Matrix4x4 modelMatrix = Matrix4x4::identity();
-Matrix4x4 viewMatrix = Matrix4x4::translation(0, 0, -3); // 相机后移
-Matrix4x4 projectionMatrix = Matrix4x4::perspective(
+mat4 modelMatrix = mat4::identity();
+mat4 viewMatrix = mat4::translation(0, 0, -3); // 相机后移
+mat4 projectionMatrix = mat4::perspective(
     45.0f * 3.1415926f / 180.0f, // FOV
     (float)width/height,          // 宽高比
     near,                         // 近裁剪面
     far                           // 远裁剪面
 );
 
-Matrix4x4 mvp = projectionMatrix * viewMatrix * modelMatrix;
+mat4 mvp = projectionMatrix * viewMatrix * modelMatrix;
 ```
 
 - 模型矩阵：保持不变（identity），后续可添加旋转或缩放。

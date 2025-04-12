@@ -1,4 +1,4 @@
-// include/core/vector.h
+// include/math/vector.h
 #pragma once
 
 template<typename T>
