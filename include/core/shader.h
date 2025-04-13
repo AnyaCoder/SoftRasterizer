@@ -47,8 +47,22 @@ public:
     vec3f uniform_DiffuseColor;
     vec3f uniform_SpecularColor;
     int uniform_Shininess;
+
+    // Textures
     Texture uniform_DiffuseTexture;
+    bool uniform_UseDiffuseMap = false; // Optional: Add flags for all maps for clarity
+
     Texture uniform_NormalTexture;
+    bool uniform_UseNormalMap = false;
+
+    Texture uniform_AoTexture;          // Added AO Texture uniform
+    bool uniform_UseAoMap = false;      // Added AO flag
+
+    Texture uniform_SpecularTexture;    // Added Specular Texture uniform
+    bool uniform_UseSpecularMap = false;// Added Specular flag
+
+    Texture uniform_GlossTexture;       // Added Gloss Texture uniform
+    bool uniform_UseGlossMap = false;   // Added Gloss flag
 
     // --- Lighting Uniforms ---
     vec3f uniform_CameraPosition;

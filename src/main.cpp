@@ -19,39 +19,30 @@ int main() {
 
     Framebuffer framebuffer(width, height);
 
+    Model headModel;
+    headModel.loadFromObj("resources/obj/african_head.obj");
 
-    Model model;
-    if (!model.loadFromObj("resources/obj/african_head.obj")) {
-        std::cerr << "Failed to load model" << std::endl;
-        return 1;
-    }
-
-    // Create Material for the model
     Material headMaterial(std::make_shared<BlinnPhongShader>());
-    // Load texture into the model itself
-    if (!headMaterial.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga")) {
-        std::cerr << "Failed to load diffuse texture" << std::endl;
-        // Decide if this is fatal - maybe render without texture?
-        // return 1;
-    }
+    headMaterial.loadDiffuseTexture("resources/diffuse/african_head_diffuse.tga");
+    headMaterial.loadNormalTexture("resources/normal_tangent/african_head_nm_tangent.tga");
+    headMaterial.loadSpecularTexture("resources/spec/african_head_spec.tga");
 
-    if (!headMaterial.loadNormalTexture("resources/normal_tangent/african_head_nm_tangent.tga")) {
-        std::cerr << "Failed to load normal texture" << std::endl;
-        // Decide if this is fatal - maybe render without texture?
-        // return 1;
-    }
+    Model eyeInnerModel;
+    eyeInnerModel.loadFromObj("resources/obj/african_head_eye_inner.obj");
 
-    headMaterial.shininess = 100; // Set Blinn-Phong shininess
-    headMaterial.specularColor = Vector3<float>(0.3f, 0.3f, 0.3f);
+    Material eyeInnerMaterial(std::make_shared<BlinnPhongShader>());
+    eyeInnerMaterial.loadDiffuseTexture("resources/diffuse/african_head_eye_inner_diffuse.tga");
+    eyeInnerMaterial.loadNormalTexture("resources/normal_tangent/african_head_eye_inner_nm_tangent.tga");
+    eyeInnerMaterial.loadSpecularTexture("resources/spec/african_head_eye_inner_spec.tga");
 
 
     // --- Setup Camera ---
     float near = 0.1f;
     float far = 100.0f;
     Camera camera(
-        Vector3<float>(-2, 0, 3),   // Camera position (raised Y slightly)
-        Vector3<float>(0, 0, 0),    // Target point
-        Vector3<float>(0, 1, 0)     // Up direction
+        vec3f(0, 1, 3),   // Camera position (raised Y slightly)
+        vec3f(0, 0, 0),    // Target point
+        vec3f(0, 1, 0)     // Up direction
     );
     camera.setPerspective(45.0f, (float)width / height, near, far);
 
@@ -61,21 +52,22 @@ int main() {
     // --- Setup Lights ---
     std::vector<Light> lights;
     Light dirLight(LightType::DIRECTIONAL);
-    dirLight.direction = Vector3<float>(0.707f, 0.0f, -0.707f).normalized();
-    dirLight.color = Vector3<float>(1.0f, 1.0f, 1.0f);
+    dirLight.direction = vec3f(0.707f, 0.0f, -0.707f).normalized();
+    dirLight.color = vec3f(1.0f, 1.0f, 1.0f);
     dirLight.intensity = 1.0f;
     lights.push_back(dirLight);
     renderer.setLights(lights);
 
     // --- Render Scene ---
-    renderer.clear(Vector3<float>(0.5f, 0.5f, 0.5f)); // Dark grey background
+    renderer.clear(vec3f(0.5f, 0.5f, 0.5f)); // Dark grey background
 
     auto modelMatrix = mat4::identity();
     // Can apply model transformations here:
     // modelMatrix = mat4::translation(0, 0.5, 0) * mat4::rotationY(3.14159f / 3.0);
 
     // Pass model, its transform, and its material to the renderer
-    renderer.drawModel(model, modelMatrix, headMaterial);
+    renderer.drawModel(headModel, modelMatrix, headMaterial);
+    renderer.drawModel(eyeInnerModel, modelMatrix, eyeInnerMaterial);
 
     // --- Post-processing & Save ---
     framebuffer.flipVertical(); // Flip if needed for TGA convention

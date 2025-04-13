@@ -51,22 +51,41 @@ void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& 
     }
 
     // --- Setup Uniforms ---
-    material.shader->uniform_ModelMatrix = modelMatrix;
-    material.shader->uniform_ViewMatrix = viewMatrix;
-    material.shader->uniform_ProjectionMatrix = projectionMatrix;
-    material.shader->uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
-    
-    material.shader->uniform_NormalMatrix = modelMatrix.inverse().transpose();
-    material.shader->uniform_CameraPosition = cameraPosition;
-    material.shader->uniform_Lights = lights;
-    
-    material.shader->uniform_AmbientColor = material.ambientColor;
-    material.shader->uniform_DiffuseColor = material.diffuseColor;
-    material.shader->uniform_SpecularColor = material.specularColor;
-    material.shader->uniform_Shininess = material.shininess;
-    
-    material.shader->uniform_DiffuseTexture = material.diffuseTexture;
-    material.shader->uniform_NormalTexture = material.normalTexture; // Set normal map
+    auto& shader = *material.shader; // Use reference for convenience
+
+    // Matrices
+    shader.uniform_ModelMatrix = modelMatrix;
+    shader.uniform_ViewMatrix = viewMatrix;
+    shader.uniform_ProjectionMatrix = projectionMatrix;
+    shader.uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
+    shader.uniform_NormalMatrix = modelMatrix.inverse().transpose();
+
+    // Lighting
+    shader.uniform_CameraPosition = cameraPosition;
+    shader.uniform_Lights = lights;
+    shader.uniform_AmbientLight = {0.1f, 0.1f, 0.1f}; // Or set globally elsewhere
+
+    // Base Material Properties
+    shader.uniform_AmbientColor = material.ambientColor;
+    shader.uniform_DiffuseColor = material.diffuseColor;
+    shader.uniform_SpecularColor = material.specularColor; // Base value
+    shader.uniform_Shininess = material.shininess;         // Base value
+
+    // Texture Uniforms and Flags
+    shader.uniform_DiffuseTexture = material.diffuseTexture;
+    shader.uniform_UseDiffuseMap = !material.diffuseTexture.empty(); // Set flag
+
+    shader.uniform_NormalTexture = material.normalTexture;
+    shader.uniform_UseNormalMap = !material.normalTexture.empty();
+
+    shader.uniform_AoTexture = material.aoTexture; // Set AO map
+    shader.uniform_UseAoMap = !material.aoTexture.empty();
+
+    shader.uniform_SpecularTexture = material.specularTexture; // Set Specular map
+    shader.uniform_UseSpecularMap = !material.specularTexture.empty();
+
+    shader.uniform_GlossTexture = material.glossTexture; // Set Gloss map
+    shader.uniform_UseGlossMap = !material.glossTexture.empty();
 
     // --- Vertex Processing & Triangle Assembly ---
     for (int i = 0; i < model.numFaces(); ++i) {

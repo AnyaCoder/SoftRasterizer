@@ -6,7 +6,7 @@ tags:
 - C++
 - 渲染引擎
 - 着色器
-categories: 技术实践
+categories: 技术分享
 ---
 
 # Blinn-Phong 着色器实现

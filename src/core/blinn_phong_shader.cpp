@@ -47,7 +47,7 @@ Varyings BlinnPhongShader::vertex(const VertexInput& input) {
 bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     // --- Determine Normal ---
     vec3f N;
-    if (!uniform_NormalTexture.empty()) {
+    if (uniform_UseNormalMap) {
         // Sample normal map (returns color in [0, 1] range)
         vec3f tangentNormalSample = uniform_NormalTexture.sample(input.uv.x, input.uv.y);
 
@@ -60,13 +60,6 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
         vec3f B = input.bitangent.normalized();
         vec3f N_geom = input.normal.normalized(); // Interpolated geometric normal
 
-        // Optional: Re-orthogonalize TBN frame here if interpolation artifacts are visible
-        // T = (T - N_geom * N_geom.dot(T)).normalized();
-        // B = N_geom.cross(T); // Can recalculate B
-
-        // Transform normal from tangent space to world space
-        // N = TBN * tangentNormal (matrix multiplication)
-        // Or manually:
         N = T * tangentNormal.x + B * tangentNormal.y + N_geom * tangentNormal.z;
         N = N.normalized(); // Final world-space normal for lighting
 
@@ -78,14 +71,48 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     // --- Lighting Calculation ---
     vec3f V = (uniform_CameraPosition - input.worldPosition).normalized(); // View direction
 
-    // Material properties for this fragment
+    // Diffuse Color (with texture modulation)
     vec3f matDiffuse = uniform_DiffuseColor;
-    if (!uniform_DiffuseTexture.empty()) {
+    if (uniform_UseDiffuseMap) {
         matDiffuse = matDiffuse * uniform_DiffuseTexture.sample(input.uv.x, input.uv.y);
     }
 
-    // Start with global ambient term
-    vec3f totalColor = uniform_AmbientLight * uniform_AmbientColor; // Use material's ambient property
+    // Specular Color (with texture override)
+    vec3f matSpecular = uniform_SpecularColor;
+    if (uniform_UseSpecularMap) {
+        matSpecular = uniform_SpecularTexture.sample(input.uv.x, input.uv.y); // Use map value
+    }
+
+    // Shininess/Gloss (with texture override)
+    int currentShininess = uniform_Shininess; // Default
+    if (uniform_UseGlossMap) {
+        // Sample gloss map (assume single channel, e.g., .x)
+        float glossFactor = uniform_GlossTexture.sample(input.uv.x, input.uv.y).x;
+        glossFactor = std::max(0.0f, std::min(1.0f, glossFactor)); // Clamp [0, 1]
+
+        // Map gloss [0, 1] to shininess range [min, max]
+        // Adjust min/max range as needed for visual results
+        const int minShininess = 2;
+        const int maxShininess = 256;
+        currentShininess = minShininess + static_cast<int>(
+                static_cast<float>(maxShininess - minShininess) * glossFactor
+            );
+    }
+
+    // Ambient Color (base material property)
+    vec3f matAmbient = uniform_AmbientColor;
+
+    // --- Ambient Occlusion ---
+    float aoFactor = 1.0f; // Default: no occlusion
+    if (uniform_UseAoMap) {
+        // Sample AO map (assume single channel, e.g., .x)
+        aoFactor = uniform_AoTexture.sample(input.uv.x, input.uv.y).x;
+        aoFactor = std::max(0.0f, std::min(1.0f, aoFactor)); // Clamp [0, 1]
+    }
+
+    // Calculate final ambient term, modulated by AO
+    vec3f ambientTerm = uniform_AmbientLight * matAmbient * aoFactor;
+    vec3f totalColor = ambientTerm; // Initialize total color
 
     // Accumulate light contributions
     for (const auto& light : uniform_Lights) {
@@ -113,8 +140,8 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
 
         // Specular (Blinn-Phong)
         vec3f H = (L + V).normalized(); // Halfway vector
-        float specFactor = fastPow(std::max(0.0f, N.dot(H)), uniform_Shininess);
-        vec3f specular = uniform_SpecularColor * lightCol * specFactor * attenuation;
+        float specFactor = fastPow(std::max(0.0f, N.dot(H)), currentShininess);
+        vec3f specular = matSpecular * lightCol * specFactor * attenuation;
 
         // Add to total color
         totalColor = totalColor + diffuse + specular;
