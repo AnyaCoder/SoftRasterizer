@@ -331,13 +331,13 @@ mat4 mat4::multiply_4x4_sse(const mat4& a, const mat4& b) {
     const float* pB = &b.m[0][0];
     float* pResult = &result.m[0][0];
 
-    for (int i = 0; i < 4; ++i) {
-        // Load rows of B
-        __m128 b_row0 = _mm_loadu_ps(&pB[0 * 4]); // B[0]
-        __m128 b_row1 = _mm_loadu_ps(&pB[1 * 4]); // B[1]
-        __m128 b_row2 = _mm_loadu_ps(&pB[2 * 4]); // B[2]
-        __m128 b_row3 = _mm_loadu_ps(&pB[3 * 4]); // B[3]
+    // Load rows of B
+    __m128 b_row0 = _mm_loadu_ps(&pB[0 * 4]); // B[0]
+    __m128 b_row1 = _mm_loadu_ps(&pB[1 * 4]); // B[1]
+    __m128 b_row2 = _mm_loadu_ps(&pB[2 * 4]); // B[2]
+    __m128 b_row3 = _mm_loadu_ps(&pB[3 * 4]); // B[3]
 
+    for (int i = 0; i < 4; ++i) {
         // Get current row i of A
         const float* a_row_ptr = &pA[i * 4];
 

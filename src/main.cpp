@@ -62,7 +62,7 @@ int main() {
 
     Transform modelTransform;
     modelTransform.setPosition({0.0f, 0.0f, 0.0f});
-    modelTransform.setRotationEulerZYX({0.0f, 360.0f, 0.0f});
+    modelTransform.setRotationEulerZYX({-30.0f, 0.0f, 0.0f});
     modelTransform.setScale({1.0f, 1.0f, 1.0f});
 
     // Pass model, its transform, and its material to the renderer
