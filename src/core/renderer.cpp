@@ -1,4 +1,4 @@
-// // src/core/renderer.cpp
+// src/core/renderer.cpp
 #include "core/renderer.h"
 #include "core/camera.h" // Include camera definition
 
@@ -40,7 +40,7 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
 }
 
 
-void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& material) {
+void Renderer::drawModel(Model& model, const Transform& transform, const Material& material) {
     if (!material.shader) {
         std::cerr << "Error: No shader set for rendering!" << std::endl;
         return;
@@ -54,11 +54,13 @@ void Renderer::drawModel(Model& model, const mat4& modelMatrix, const Material& 
     auto& shader = *material.shader; // Use reference for convenience
 
     // Matrices
+    mat4 modelMatrix = transform.getTransformMatrix();
+    mat3 normalMatrix = transform.getNormalMatrix(); 
     shader.uniform_ModelMatrix = modelMatrix;
     shader.uniform_ViewMatrix = viewMatrix;
     shader.uniform_ProjectionMatrix = projectionMatrix;
     shader.uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
-    shader.uniform_NormalMatrix = modelMatrix.inverse().transpose();
+    shader.uniform_NormalMatrix = normalMatrix;
 
     // Lighting
     shader.uniform_CameraPosition = cameraPosition;

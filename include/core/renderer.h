@@ -7,6 +7,7 @@
 #include "light.h"
 #include "camera.h"
 #include "math/matrix.h"
+#include "math/transform.h"
 #include <vector>
 #include <memory>
 
@@ -26,7 +27,7 @@ public:
     void setCamera(const Camera& cam); // Store view/projection matrices
 
     void clear(const vec3f& color);
-    void drawModel(Model& model, const mat4& modelMatrix, const Material& material);
+    void drawModel(Model& model, const Transform& transform, const Material& material);
 
 private:
     Framebuffer& framebuffer;

@@ -22,18 +22,18 @@ T fastPow(T base, int n) {
 Varyings BlinnPhongShader::vertex(const VertexInput& input) {
     Varyings output;
     vec4f modelPos4(input.position, 1.0f); // Assuming vec4f exists or use Vector4<float>
-    vec4f modelNormal4(input.normal, 0.0f); // 0.0f w for direction
-    vec4f modelTangent4(input.tangent, 0.0f);
-    vec4f modelBitangent4(input.bitangent, 0.0f);
+    vec3f modelNormal3(input.normal); // 0.0f w for direction
+    vec3f modelTangent3(input.tangent);
+    vec3f modelBitangent3(input.bitangent);
 
     // Calculate world position
     vec4f worldPos4 = uniform_ModelMatrix * modelPos4;
     output.worldPosition = worldPos4.xyz();
 
     // Transform normal to world space using Normal Matrix
-    output.normal    = (uniform_NormalMatrix * modelNormal4).xyz().normalized();
-    output.tangent   = (uniform_NormalMatrix * modelTangent4).xyz().normalized();
-    output.bitangent = (uniform_NormalMatrix * modelBitangent4).xyz().normalized();
+    output.normal    = (uniform_NormalMatrix * modelNormal3).normalized();
+    output.tangent   = (uniform_NormalMatrix * modelTangent3).normalized();
+    output.bitangent = (uniform_NormalMatrix * modelBitangent3).normalized();
 
     // Pass UV coordinates
     output.uv = input.uv;

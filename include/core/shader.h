@@ -40,7 +40,7 @@ public:
     mat4 uniform_ViewMatrix;
     mat4 uniform_ProjectionMatrix;
     mat4 uniform_MVP; // Model * View * Projection
-    mat4 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
+    mat3 uniform_NormalMatrix; // Transpose(Inverse(ModelViewMatrix)) for normals
     
     // --- Material Properties --- (might be part of a Material uniform block later)
     vec3f uniform_AmbientColor;

@@ -35,7 +35,6 @@ int main() {
     eyeInnerMaterial.loadNormalTexture("resources/normal_tangent/african_head_eye_inner_nm_tangent.tga");
     eyeInnerMaterial.loadSpecularTexture("resources/spec/african_head_eye_inner_spec.tga");
 
-
     // --- Setup Camera ---
     float near = 0.1f;
     float far = 100.0f;
@@ -61,13 +60,14 @@ int main() {
     // --- Render Scene ---
     renderer.clear(vec3f(0.5f, 0.5f, 0.5f)); // Dark grey background
 
-    auto modelMatrix = mat4::identity();
-    // Can apply model transformations here:
-    // modelMatrix = mat4::translation(0, 0.5, 0) * mat4::rotationY(3.14159f / 3.0);
+    Transform modelTransform;
+    modelTransform.setPosition({0.0f, 0.0f, 0.0f});
+    modelTransform.setRotationEulerZYX({0.0f, 360.0f, 0.0f});
+    modelTransform.setScale({1.0f, 1.0f, 1.0f});
 
     // Pass model, its transform, and its material to the renderer
-    renderer.drawModel(headModel, modelMatrix, headMaterial);
-    renderer.drawModel(eyeInnerModel, modelMatrix, eyeInnerMaterial);
+    renderer.drawModel(headModel, modelTransform, headMaterial);
+    renderer.drawModel(eyeInnerModel, modelTransform, eyeInnerMaterial);
 
     // --- Post-processing & Save ---
     framebuffer.flipVertical(); // Flip if needed for TGA convention

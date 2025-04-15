@@ -1,18 +1,185 @@
-// src/math/matrix.h
+// src/math/matrix.cpp
 #pragma once
 #include "math/matrix.h"
 #include "math/vector.h"
 
+mat3::mat3() {
+    memset(&m, 0, sizeof(m));
+}
+
+mat3::mat3(float v) {
+    memset(&m, 0, sizeof(m));
+    for (int i = 0; i < 3; i++) m[i][i] = v;
+}
+
+mat3 mat3::identity() {
+    return mat3(1.0f);
+}
+
+mat4 mat3::toMat4() {
+    mat4 newMat;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            newMat.m[i][j] = m[i][j];
+    newMat.m[3][3] = 1.0f;
+    return newMat;
+}
+
+mat3 mat3::scale(float x, float y, float z) {
+    mat3 mat(1.0f);
+    mat.m[0][0] = x;
+    mat.m[1][1] = y;
+    mat.m[2][2] = z;
+    return mat;
+}
+
+mat3 mat3::fromQuaternion(const quat& q) {
+    mat3 result = mat3::identity();
+    quat qn = q.normalized();
+
+    float xx = qn.x * qn.x; float xy = qn.x * qn.y; float xz = qn.x * qn.z; float xw = qn.x * qn.w;
+    float yy = qn.y * qn.y; float yz = qn.y * qn.z; float yw = qn.y * qn.w;
+    float zz = qn.z * qn.z; float zw = qn.z * qn.w;
+
+    result.m[0][0] = 1.0f - 2.0f * (yy + zz);
+    result.m[0][1] = 2.0f * (xy - zw);
+    result.m[0][2] = 2.0f * (xz + yw);
+
+    result.m[1][0] = 2.0f * (xy + zw);
+    result.m[1][1] = 1.0f - 2.0f * (xx + zz);
+    result.m[1][2] = 2.0f * (yz - xw);
+
+    result.m[2][0] = 2.0f * (xz - yw);
+    result.m[2][1] = 2.0f * (yz + xw);
+    result.m[2][2] = 1.0f - 2.0f * (xx + yy);
+
+    return result;
+}
+
+quat mat3::toQuat() const {
+    // Algorithm based on Ken Shoemake's "Quaternion Calculus and Fast Animation"
+    quat q;
+
+    float trace = m[0][0] + m[1][1] + m[2][2];
+
+    if (trace > 0.0f) {
+        // Calculate S = 4 * qw
+        float S = std::sqrt(trace + 1.0f) * 2.0f;
+        q.w = 0.25f * S;
+        // Calculate remaining components using off-diagonal elements
+        q.x = (m[2][1] - m[1][2]) / S;
+        q.y = (m[0][2] - m[2][0]) / S;
+        q.z = (m[1][0] - m[0][1]) / S;
+    } else if ((m[0][0] > m[1][1]) && (m[0][0] > m[2][2])) {
+        // Column 0 has largest diagonal element
+        // Calculate S = 4 * qx
+        float S = std::sqrt(1.0f + m[0][0] - m[1][1] - m[2][2]) * 2.0f;
+        q.w = (m[2][1] - m[1][2]) / S;
+        q.x = 0.25f * S;
+        q.y = (m[0][1] + m[1][0]) / S;
+        q.z = (m[0][2] + m[2][0]) / S;
+    } else if (m[1][1] > m[2][2]) {
+        // Column 1 has largest diagonal element
+        // Calculate S = 4 * qy
+        float S = std::sqrt(1.0f + m[1][1] - m[0][0] - m[2][2]) * 2.0f;
+        q.w = (m[0][2] - m[2][0]) / S;
+        q.x = (m[0][1] + m[1][0]) / S;
+        q.y = 0.25f * S;
+        q.z = (m[1][2] + m[2][1]) / S;
+    } else {
+        // Column 2 has largest diagonal element
+        // Calculate S = 4 * qz
+        float S = std::sqrt(1.0f + m[2][2] - m[0][0] - m[1][1]) * 2.0f;
+        q.w = (m[1][0] - m[0][1]) / S;
+        q.x = (m[0][2] + m[2][0]) / S;
+        q.y = (m[1][2] + m[2][1]) / S;
+        q.z = 0.25f * S;
+    }
+
+    return q;
+}
+
+
+mat3 mat3::operator*(const mat3& other) const {
+    mat3 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+                result.m[i][j] += m[i][k] * other.m[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+vec3f mat3::operator*(const vec3f& v) const {
+    vec3f result;
+    result.x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z;
+    result.y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z;
+    result.z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
+    return result;
+}
+
+mat3 mat3::transpose() const {
+    mat3 result;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            result.m[j][i] = m[i][j];
+        }
+    }
+    return result;
+}
+
+mat3 mat3::inverse() const {
+    // Calculates the adjugate matrix elements directly.
+    mat3 inv; // Stores the adjugate first, then the inverse.
+
+    // Calculate cofactors and transpose directly into 'inv' to form the adjugate
+    inv.m[0][0] = m[1][1] * m[2][2] - m[1][2] * m[2][1];
+    inv.m[1][0] = m[1][2] * m[2][0] - m[1][0] * m[2][2];
+    inv.m[2][0] = m[1][0] * m[2][1] - m[1][1] * m[2][0];
+
+    inv.m[0][1] = m[0][2] * m[2][1] - m[0][1] * m[2][2];
+    inv.m[1][1] = m[0][0] * m[2][2] - m[0][2] * m[2][0];
+    inv.m[2][1] = m[0][1] * m[2][0] - m[0][0] * m[2][1];
+
+    inv.m[0][2] = m[0][1] * m[1][2] - m[0][2] * m[1][1];
+    inv.m[1][2] = m[0][2] * m[1][0] - m[0][0] * m[1][2];
+    inv.m[2][2] = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+
+
+    // Calculate determinant using the first column of the original matrix
+    float det = m[0][0] * inv.m[0][0] + m[1][0] * inv.m[0][1] + m[2][0] * inv.m[0][2];
+
+    // Check for singularity (determinant close to zero)
+    const float epsilon = 1e-6f; // Adjust epsilon based on required precision
+    if (std::fabs(det) < epsilon) {
+        std::cerr << "Warning: Matrix3x3 determinant is close to zero (" << det << "). Returning identity matrix." << std::endl;
+        return mat3::identity();
+    }
+
+    // Divide the adjugate matrix by the determinant to get the inverse
+    float invDet = 1.0f / det;
+
+    mat3 result; // Final inverse matrix
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = inv.m[i][j] * invDet;
+        }
+    }
+
+    return result;
+}
+
+
+/************************************* */
 mat4::mat4() {
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            m[i][j] = 0.0f;
+    memset(&m, 0, sizeof(m));
 }
 
 mat4::mat4(float v) {
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            m[i][j] = (i == j ? v : 0.0f);
+    memset(&m, 0, sizeof(m));
+    for (int i = 0; i < 4; i++) m[i][i] = v;
 }
 
 mat4 mat4::identity() {
@@ -28,17 +195,13 @@ mat4 mat4::translation(float x, float y, float z) {
 }
 
 mat4 mat4::scale(float x, float y, float z) {
-    mat4 mat(1.0f);
-    mat.m[0][0] = x;
-    mat.m[1][1] = y;
-    mat.m[2][2] = z;
-    return mat;
+    return mat3::scale(x, y, z).toMat4();
 }
 
-mat4 mat4::rotationX(float angle) {
+mat4 mat4::rotationX(float angleRad) {
     mat4 mat(1.0f);
-    float c = std::cos(angle);
-    float s = std::sin(angle);
+    float c = std::cos(angleRad);
+    float s = std::sin(angleRad);
     mat.m[1][1] = c;
     mat.m[1][2] = -s;
     mat.m[2][1] = s;
@@ -46,10 +209,10 @@ mat4 mat4::rotationX(float angle) {
     return mat;
 }
 
-mat4 mat4::rotationY(float angle) {
+mat4 mat4::rotationY(float angleRad) {
     mat4 mat(1.0f);
-    float c = std::cos(angle);
-    float s = std::sin(angle);
+    float c = std::cos(angleRad);
+    float s = std::sin(angleRad);
     mat.m[0][0] = c;
     mat.m[0][2] = s;
     mat.m[2][0] = -s;
@@ -57,10 +220,10 @@ mat4 mat4::rotationY(float angle) {
     return mat;
 }
 
-mat4 mat4::rotationZ(float angle) {
+mat4 mat4::rotationZ(float angleRad) {
     mat4 mat(1.0f);
-    float c = std::cos(angle);
-    float s = std::sin(angle);
+    float c = std::cos(angleRad);
+    float s = std::sin(angleRad);
     mat.m[0][0] = c;
     mat.m[0][1] = -s;
     mat.m[1][0] = s;
@@ -68,13 +231,13 @@ mat4 mat4::rotationZ(float angle) {
     return mat;
 }
 
-mat4 mat4::perspective(float fov, float aspect, float near, float far) {
+mat4 mat4::perspective(float fovRad, float aspect, float near, float far) {
     // Ensure input validity to avoid division by zero or degenerate cases
-    if (aspect <= 0 || far <= near || near <= 0 || fov <= 0 || fov >= 3.1415926f) {
+    if (aspect <= 0 || far <= near || near <= 0 || fovRad <= 0 || fovRad >= 3.1415926f) {
         return mat4::identity();
     }
     mat4 mat;
-    float tanHalfFov = std::tan(fov / 2.0f);
+    float tanHalfFov = std::tan(fovRad / 2.0f);
     mat.m[0][0] = 1.0f / (aspect * tanHalfFov);
     mat.m[1][1] = 1.0f / tanHalfFov;
     mat.m[2][2] = -(far + near) / (far - near);
@@ -82,6 +245,10 @@ mat4 mat4::perspective(float fov, float aspect, float near, float far) {
     mat.m[3][2] = -1.0f;
     mat.m[3][3] = 0.0f;
     return mat;
+}
+
+mat4 mat4::fromQuaternion(const quat& q) {
+    return mat3::fromQuaternion(q).toMat4();
 }
 
 mat4& mat4::operator=(const mat4& other) {
@@ -100,7 +267,6 @@ mat4 mat4::operator*(const mat4& other) const {
     mat4 result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            result.m[i][j] = 0.0f;
             for (int k = 0; k < 4; k++) {
                 result.m[i][j] += m[i][k] * other.m[k][j];
             }
