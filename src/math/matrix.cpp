@@ -3,6 +3,7 @@
 #include "math/matrix.h"
 #include "math/vector.h"
 
+
 mat3::mat3() {
     memset(&m, 0, sizeof(m));
 }
@@ -101,6 +102,7 @@ quat mat3::toQuat() const {
 
 
 mat3 mat3::operator*(const mat3& other) const {
+#ifdef Naive_matmul
     mat3 result;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -109,6 +111,36 @@ mat3 mat3::operator*(const mat3& other) const {
             }
         }
     }
+    return result;
+#else
+    return multiply_3x3_unrolled(*this, other);
+#endif
+}
+
+/**
+ * @brief Multiplies two 3x3 matrices (a * b) using full loop unrolling.
+ * @param a Left-hand side matrix.
+ * @param b Right-hand side matrix.
+ * @return The resulting matrix product.
+ */
+mat3 mat3::multiply_3x3_unrolled(const mat3& a, const mat3& b) {
+    mat3 result; // Result matrix C = A * B
+
+    // Row 0
+    result.m[0][0] = a.m[0][0] * b.m[0][0] + a.m[0][1] * b.m[1][0] + a.m[0][2] * b.m[2][0];
+    result.m[0][1] = a.m[0][0] * b.m[0][1] + a.m[0][1] * b.m[1][1] + a.m[0][2] * b.m[2][1];
+    result.m[0][2] = a.m[0][0] * b.m[0][2] + a.m[0][1] * b.m[1][2] + a.m[0][2] * b.m[2][2];
+
+    // Row 1
+    result.m[1][0] = a.m[1][0] * b.m[0][0] + a.m[1][1] * b.m[1][0] + a.m[1][2] * b.m[2][0];
+    result.m[1][1] = a.m[1][0] * b.m[0][1] + a.m[1][1] * b.m[1][1] + a.m[1][2] * b.m[2][1];
+    result.m[1][2] = a.m[1][0] * b.m[0][2] + a.m[1][1] * b.m[1][2] + a.m[1][2] * b.m[2][2];
+
+    // Row 2
+    result.m[2][0] = a.m[2][0] * b.m[0][0] + a.m[2][1] * b.m[1][0] + a.m[2][2] * b.m[2][0];
+    result.m[2][1] = a.m[2][0] * b.m[0][1] + a.m[2][1] * b.m[1][1] + a.m[2][2] * b.m[2][1];
+    result.m[2][2] = a.m[2][0] * b.m[0][2] + a.m[2][1] * b.m[1][2] + a.m[2][2] * b.m[2][2];
+
     return result;
 }
 
@@ -264,6 +296,7 @@ mat4& mat4::operator=(const mat4& other) {
 }
 
 mat4 mat4::operator*(const mat4& other) const {
+#ifdef Naive_matmul
     mat4 result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -272,6 +305,56 @@ mat4 mat4::operator*(const mat4& other) const {
             }
         }
     }
+    return result;
+#else
+    return multiply_4x4_sse(*this, other);
+#endif
+}
+
+/**
+ * @brief Multiplies two 4x4 matrices (a * b) using SSE intrinsics.
+ * @details This version can be significantly faster on CPUs supporting SSE/SSE2.
+ * Assumes row-major storage for matrices.
+ * @param a Left-hand side matrix.
+ * @param b Right-hand side matrix.
+ * @return The resulting matrix product.
+ */
+mat4 mat4::multiply_4x4_sse(const mat4& a, const mat4& b) {
+    mat4 result;
+    // Treat matrix rows/columns as __m128 (4 floats)
+    // We calculate one row of the result matrix C at a time.
+    // C[i] = A[i][0]*B[0] + A[i][1]*B[1] + A[i][2]*B[2] + A[i][3]*B[3]
+    // Where C[i], B[0..3] are rows treated as __m128 vectors.
+
+    // Pointer casting for easier __m128 loading (use with care, depends on structure layout)
+    const float* pA = &a.m[0][0];
+    const float* pB = &b.m[0][0];
+    float* pResult = &result.m[0][0];
+
+    for (int i = 0; i < 4; ++i) {
+        // Load rows of B
+        __m128 b_row0 = _mm_loadu_ps(&pB[0 * 4]); // B[0]
+        __m128 b_row1 = _mm_loadu_ps(&pB[1 * 4]); // B[1]
+        __m128 b_row2 = _mm_loadu_ps(&pB[2 * 4]); // B[2]
+        __m128 b_row3 = _mm_loadu_ps(&pB[3 * 4]); // B[3]
+
+        // Get current row i of A
+        const float* a_row_ptr = &pA[i * 4];
+
+        // Broadcast elements of A's row i and multiply/add
+        // C[i] = A[i][0]*B[0]
+        __m128 result_row = _mm_mul_ps(_mm_set1_ps(a_row_ptr[0]), b_row0);
+        // C[i] += A[i][1]*B[1]
+        result_row = _mm_add_ps(result_row, _mm_mul_ps(_mm_set1_ps(a_row_ptr[1]), b_row1));
+        // C[i] += A[i][2]*B[2]
+        result_row = _mm_add_ps(result_row, _mm_mul_ps(_mm_set1_ps(a_row_ptr[2]), b_row2));
+        // C[i] += A[i][3]*B[3]
+        result_row = _mm_add_ps(result_row, _mm_mul_ps(_mm_set1_ps(a_row_ptr[3]), b_row3));
+
+        // Store the resulting row i into the result matrix
+        _mm_storeu_ps(&pResult[i * 4], result_row);
+    }
+
     return result;
 }
 
