@@ -6,9 +6,9 @@
 #include <cmath>
 #include <vector>
 
-constexpr float M_PI = 3.14159265f;
-constexpr float Q_DEG2RAD = M_PI / 180.0f;
-constexpr float Q_RAD2DEG = 180.0f / M_PI;
+constexpr float MY_PI = 3.14159265f;
+constexpr float Q_DEG2RAD = MY_PI / 180.0f;
+constexpr float Q_RAD2DEG = 180.0f / MY_PI;
 
 struct mat3;
 

@@ -1,5 +1,6 @@
 // include/math/vector.h
 #pragma once
+#include <vector>
 
 template<typename T>
 struct Vector2 {
@@ -23,9 +24,11 @@ struct Vector3 {
     
     Vector3() : x(0), y(0), z(0) {}
     Vector3(T x, T y, T z) : x(x), y(y), z(z) {}
+    Vector3(const std::vector<T>& v) { x = v[0]; y = v[1]; z = v[2];}
     
     Vector3 operator+(const Vector3& v) const { return Vector3(x + v.x, y + v.y, z + v.z); }
     Vector3& operator+=(const Vector3& v) { x += v.x; y += v.y; z += v.z; return *this; }
+    Vector3& operator=(const std::vector<T>& v) { x = v[0]; y = v[1]; z = v[2]; return *this;}
     Vector3 operator-() const { return Vector3(-x, -y, -z); }
     Vector3 operator-(const Vector3& v) const { return Vector3(x - v.x, y - v.y, z - v.z); }
     Vector3 operator*(T s) const { return Vector3(x * s, y * s, z * s); }

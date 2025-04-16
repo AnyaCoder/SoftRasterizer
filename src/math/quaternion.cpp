@@ -160,7 +160,7 @@ vec3f quat::toEulerAnglesZYX() const {
     // Pitch (x-axis rotation)
     float sinp = 2.0f * (qn.w * qn.x - qn.y * qn.z);
     if (std::abs(sinp) >= 1.0f) // Use 90 degrees if out of range
-        anglesRad.x = std::copysignf(M_PI / 2.0f, sinp);
+        anglesRad.x = std::copysignf(MY_PI / 2.0f, sinp);
     else
         anglesRad.x = std::asinf(sinp);
 

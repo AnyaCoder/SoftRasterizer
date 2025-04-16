@@ -5,8 +5,17 @@ project(SoftRasterizer)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 包含目录
-include_directories(include)
+# Find SDL2
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/thirdparty/SDL2)
+find_package(SDL2 REQUIRED)
+message(STATUS "Found SDL2: Headers=${SDL2_INCLUDE_DIRS}, Libraries=${SDL2_LIBRARIES}")
+
+# Find yaml-cpp
+find_package(yaml-cpp QUIET)
+if (NOT yaml-cpp_FOUND)
+    message(STATUS "Building yaml-cpp from source")
+    add_subdirectory(thirdparty/yaml-cpp EXCLUDE_FROM_ALL)
+endif()
 
 # 源文件
 file(GLOB SOURCES
@@ -19,9 +28,16 @@ file(GLOB SOURCES
 # 创建可执行文件
 add_executable(SoftRasterizer ${SOURCES})
 
-# --- 添加优化和向量化标志 (主要针对Release构建) ---
-# 注意：-O2 (或 /O2) 优化通常由 CMAKE_BUILD_TYPE=Release 隐式设置。
-# 以下代码主要添加特定于平台的向量化增强标志。
+# Link libraries
+if(TARGET SDL2::SDL2)
+    message(STATUS "Linking against imported target SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp")
+    target_link_libraries(SoftRasterizer PRIVATE SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp)
+else()
+    message(WARNING "SDL2 imported target not found, linking using variables SDL2_LIBRARIES")
+    target_link_libraries(SoftRasterizer PRIVATE ${SDL2_LIBRARIES} yaml-cpp::yaml-cpp)
+endif()
+
+target_include_directories(SoftRasterizer PRIVATE include ${SDL2_INCLUDE_DIRS})
 
 include(CheckCXXCompilerFlag) # 包含检查编译器标志的功能
 
@@ -60,19 +76,31 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         endif()
     endif()
 endif()
-# --- 结束 优化和向量化标志 ---
 
+# Output directories
 set_target_properties(SoftRasterizer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
 )
 
-# 编译后拷贝obj文件夹到构建目录
+# Copy resources and scene file
 add_custom_command(TARGET SoftRasterizer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/resources
     ${CMAKE_BINARY_DIR}/bin/resources
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/scenes/scene.yaml
+    ${CMAKE_BINARY_DIR}/bin/scenes/scene.yaml
 )
 
-# Windows平台不需要显式链接数学库
+# Copy SDL2.dll on Windows
+set(SDL2_RUNTIME_LIBRARY_PATH "${CMAKE_SOURCE_DIR}/thirdparty/SDL2/lib/x64/SDL2.dll")
+if(WIN32 AND EXISTS "${SDL2_RUNTIME_LIBRARY_PATH}")
+    add_custom_command(TARGET SoftRasterizer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SDL2_RUNTIME_LIBRARY_PATH}"
+        $<TARGET_FILE_DIR:SoftRasterizer>/SDL2.dll
+        COMMENT "Copying SDL2.dll to output directory"
+    )
+endif()

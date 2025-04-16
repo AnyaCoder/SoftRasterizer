@@ -40,7 +40,7 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
 }
 
 
-void Renderer::drawModel(Model& model, const Transform& transform, const Material& material) {
+void Renderer::drawModel(const Model& model, const Transform& transform, const Material& material) {
     if (!material.shader) {
         std::cerr << "Error: No shader set for rendering!" << std::endl;
         return;

@@ -15,14 +15,10 @@ public:
 
     // Modified setPixel takes depth in [0, 1] range (0=near, 1=far)
     void setPixel(int x, int y, const vec3f& color, float depth = 0.0f);
+    const std::vector<vec3f>& getPixels() const;
 
     // Getter for depth buffer value
-    float getDepth(int x, int y) const { 
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            return zBuffer[y * width + x];
-        }
-        return 1.0f; // Return farthest depth if outside bounds
-    }
+    float getDepth(int x, int y) const;
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }

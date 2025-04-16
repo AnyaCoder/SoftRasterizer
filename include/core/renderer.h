@@ -27,7 +27,7 @@ public:
     void setCamera(const Camera& cam); // Store view/projection matrices
 
     void clear(const vec3f& color);
-    void drawModel(Model& model, const Transform& transform, const Material& material);
+    void drawModel(const Model& model, const Transform& transform, const Material& material);
 
 private:
     Framebuffer& framebuffer;
