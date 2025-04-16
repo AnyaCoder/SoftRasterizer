@@ -27,10 +27,7 @@ const std::vector<vec3f>& Framebuffer::getPixels() const {
 }
 
 float Framebuffer::getDepth(int x, int y) const { 
-    if (x >= 0 && x < width && y >= 0 && y < height) {
-        return zBuffer[y * width + x];
-    }
-    return 1.0f; // Return farthest depth if outside bounds
+    return zBuffer[y * width + x];
 }
 
 void Framebuffer::flipHorizontal() {

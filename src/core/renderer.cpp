@@ -45,12 +45,7 @@ void Renderer::drawModel(const Model& model, const Transform& transform, const M
         std::cerr << "Error: No shader set for rendering!" << std::endl;
         return;
     }
-    
-    if (!material.normalTexture.empty() && model.numTangents() == 0) {
-        std::cerr << "Warning: Material has normal map but model tangents not calculated/loaded. Call model.calculateTangents()." << std::endl;
-    }
 
-    // --- Setup Uniforms ---
     auto& shader = *material.shader; // Use reference for convenience
 
     // Matrices
@@ -64,69 +59,43 @@ void Renderer::drawModel(const Model& model, const Transform& transform, const M
 
     // Lighting
     shader.uniform_CameraPosition = cameraPosition;
-    shader.uniform_Lights = lights;
-    shader.uniform_AmbientLight = {0.1f, 0.1f, 0.1f}; // Or set globally elsewhere
-
-    // Base Material Properties
-    shader.uniform_AmbientColor = material.ambientColor;
-    shader.uniform_DiffuseColor = material.diffuseColor;
-    shader.uniform_SpecularColor = material.specularColor; // Base value
-    shader.uniform_Shininess = material.shininess;         // Base value
-
-    // Texture Uniforms and Flags
-    shader.uniform_DiffuseTexture = material.diffuseTexture;
-    shader.uniform_UseDiffuseMap = !material.diffuseTexture.empty(); // Set flag
-
-    shader.uniform_NormalTexture = material.normalTexture;
-    shader.uniform_UseNormalMap = !material.normalTexture.empty();
-
-    shader.uniform_AoTexture = material.aoTexture; // Set AO map
-    shader.uniform_UseAoMap = !material.aoTexture.empty();
-
-    shader.uniform_SpecularTexture = material.specularTexture; // Set Specular map
-    shader.uniform_UseSpecularMap = !material.specularTexture.empty();
-
-    shader.uniform_GlossTexture = material.glossTexture; // Set Gloss map
-    shader.uniform_UseGlossMap = !material.glossTexture.empty();
 
     // --- Vertex Processing & Triangle Assembly ---
+     // Vertex Processing & Triangle Assembly
     for (int i = 0; i < model.numFaces(); ++i) {
         Model::Face face = model.getFace(i);
         ScreenVertex screenVertices[3];
         Varyings varyings[3];
-        bool triangleVisible = false; // 改为 false，默认不可见
+        bool triangleVisible = false;
 
+        // Vertex processing
         for (int j = 0; j < 3; ++j) {
             VertexInput vInput;
+            vInput.position = model.getVertex(face.vertIndex[j]);
+            vInput.normal = model.getNormal(face.normIndex[j]);
+            vInput.uv = model.getUV(face.uvIndex[j]);
+            vInput.tangent = model.getTangent(face.vertIndex[j]);
+            vInput.bitangent = model.getBitangent(face.vertIndex[j]);
 
-            int vertIdx = face.vertIndex[j];
-            int uvIdx = face.uvIndex[j];
-            int normIdx = face.normIndex[j];
+            varyings[j] = material.shader->vertex(vInput);
 
-            vInput.position  = model.getVertex(vertIdx);
-            vInput.normal    = model.getNormal(normIdx);
-            vInput.uv        = model.getUV(uvIdx);
-            vInput.tangent   = model.getTangent(vertIdx);
-            vInput.bitangent = model.getBitangent(vertIdx);
-
-            varyings[j]     = material.shader->vertex(vInput);
-
-            // 检查是否在裁剪空间范围内
+            // Check if vertex is in front of near plane and valid
             float w = varyings[j].clipPosition.w;
             float z = varyings[j].clipPosition.z;
-            if (w > 0 && z >= -w && z <= w) { // 仅当顶点在近裁剪面内时标记可见
+            if (w > 0 && z >= 0) {
                 triangleVisible = true;
             }
         }
 
-        // 如果所有顶点都在近裁剪面外，则跳过
         if (!triangleVisible) {
             continue;
         }
 
+        // Perspective division and viewport transform
         for (int j = 0; j < 3; ++j) {
-            if (varyings[j].clipPosition.w <= 0) continue; // 防止除以0或负数
-            float invW = 1.0f / varyings[j].clipPosition.w;
+            float w = varyings[j].clipPosition.w;
+            if (w <= 0) continue; // Skip invalid vertices
+            float invW = 1.0f / w;
             vec3f ndcPos = {
                 varyings[j].clipPosition.x * invW,
                 varyings[j].clipPosition.y * invW,
@@ -135,23 +104,21 @@ void Renderer::drawModel(const Model& model, const Transform& transform, const M
 
             screenVertices[j].x = static_cast<int>((ndcPos.x + 1.0f) * 0.5f * framebuffer.getWidth());
             screenVertices[j].y = static_cast<int>((ndcPos.y + 1.0f) * 0.5f * framebuffer.getHeight());
-            screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f; // 直接使用 NDC z 映射到 [0, 1]
+            screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f; // Map to [0, 1]
             screenVertices[j].invW = invW;
             screenVertices[j].varyings = varyings[j];
-
         }
 
-        // 背面剔除和光栅化逻辑保持不变
-        if (triangleVisible) {
-            vec2f p0 = { (float)screenVertices[0].x, (float)screenVertices[0].y };
-            vec2f p1 = { (float)screenVertices[1].x, (float)screenVertices[1].y };
-            vec2f p2 = { (float)screenVertices[2].x, (float)screenVertices[2].y };
-            float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
-            if (signedArea < 0) {
-                continue;
-            }
-            drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
+        // Backface culling
+        vec2f p0 = {static_cast<float>(screenVertices[0].x), static_cast<float>(screenVertices[0].y)};
+        vec2f p1 = {static_cast<float>(screenVertices[1].x), static_cast<float>(screenVertices[1].y)};
+        vec2f p2 = {static_cast<float>(screenVertices[2].x), static_cast<float>(screenVertices[2].y)};
+        float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
+        if (signedArea < 0) {
+            continue;
         }
+
+        drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
     }
 }
 
@@ -216,20 +183,20 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
 
     float dyA = static_cast<float>(vEndA.y - vStartA.y);
     float dyB = static_cast<float>(vEndB.y - vStartB.y);
+    // Avoid division by zero
+    float invDyA = (std::abs(dyA) > 1e-6f) ? 1.0f / dyA : 0.0f;
+    float invDyB = (std::abs(dyB) > 1e-6f) ? 1.0f / dyB : 0.0f;
 
     // Clamp yStart and yEnd to framebuffer bounds
     yStart = std::max(0, yStart);
     yEnd = std::min(framebuffer.getHeight() - 1, yEnd);
 
     for (int y = yStart; y <= yEnd; ++y) {
-         // Calculate interpolation factors 't' along edges A (vStartA -> vEndA) and B (vStartB -> vEndB)
-        float tA = (std::abs(dyA) > 1e-6f) ? static_cast<float>(y - vStartA.y) / dyA : 0.0f;
-        float tB = (std::abs(dyB) > 1e-6f) ? static_cast<float>(y - vStartB.y) / dyB : 0.0f;
+        // Interpolation factors along edges
+        float tA = (y - vStartA.y) * invDyA;
+        float tB = (y - vStartB.y) * invDyB;
 
-        tA = std::max(0.0f, std::min(1.0f, tA)); // Clamp t
-        tB = std::max(0.0f, std::min(1.0f, tB));
-
-        // Interpolate X, Z, 1/W linearly along edges A and B
+        // Interpolate attributes along edges
         float xa = vStartA.x + (vEndA.x - vStartA.x) * tA;
         float xb = vStartB.x + (vEndB.x - vStartB.x) * tB;
         float za = vStartA.z + (vEndA.z - vStartA.z) * tA;
@@ -240,7 +207,6 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
         // Interpolate Varyings perspective-correctly along edges A and B
         Varyings varyingsA = interpolateVaryings(tA, vStartA.varyings, vEndA.varyings, vStartA.invW, vEndA.invW);
         Varyings varyingsB = interpolateVaryings(tB, vStartB.varyings, vEndB.varyings, vStartB.invW, vEndB.invW);
-
 
         // Ensure xa <= xb
         if (xa > xb) {
@@ -254,12 +220,11 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
         int xEnd = std::min(framebuffer.getWidth() - 1, static_cast<int>(std::floor(xb)));
 
         float dx = xb - xa;
+        float invDx = (std::abs(dx) > 1e-6f) ? 1.0f / dx : 0.0f;
 
         for (int x = xStart; x <= xEnd; ++x) {
             // Calculate interpolation factor 'tHoriz' across the scanline
-            float tHoriz = (std::abs(dx) > 1e-6f) ? (static_cast<float>(x) - xa) / dx : 0.0f;
-            tHoriz = std::max(0.0f, std::min(1.0f, tHoriz)); // Clamp
-
+            float tHoriz = (x - xa) * invDx;
              // Interpolate depth linearly across scanline
             float depth = za + (zb - za) * tHoriz;
 
@@ -270,11 +235,8 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
             
             // Interpolate 1/W linearly across scanline
             float currentInvW = invWa + (invWb - invWa) * tHoriz;
-
             // Interpolate varyings perspective-correctly across the scanline
             Varyings finalVaryings = interpolateVaryings(tHoriz, varyingsA, varyingsB, invWa, invWb);
-
-
             // --- Fragment Shader ---
             vec3f fragmentColor;
             if (material.shader->fragment(finalVaryings, fragmentColor)) {

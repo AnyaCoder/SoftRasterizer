@@ -34,7 +34,7 @@ private:
     std::vector<Light> lights;
     mat4 viewMatrix;
     mat4 projectionMatrix;
-    Vector3<float> cameraPosition;
+    vec3f cameraPosition;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
     void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material);
