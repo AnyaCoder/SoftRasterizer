@@ -6,9 +6,9 @@
 #include <cstring>
 #include <iostream>
 
-#ifndef Naive_matmul
+#ifndef NaiveMethod
 #include <immintrin.h>
-// #define Naive_matmul
+// #define NaiveMethod
 #endif
 
 struct quat;
@@ -24,6 +24,7 @@ struct mat3 {
     static mat3 scale(float x, float y, float z);
     static mat3 fromQuaternion(const quat& q);
     quat toQuat() const;
+    mat3& operator=(const mat3& other);
     mat3 operator*(const mat3& other) const;
     vec3f operator*(const vec3f& v) const;
     static mat3 multiply_3x3_unrolled(const mat3& a, const mat3& b);

@@ -100,9 +100,15 @@ quat mat3::toQuat() const {
     return q;
 }
 
+mat3& mat3::operator=(const mat3& other) {
+    if (this != &other) {
+        memcpy(m, other.m, sizeof(float) * 3 * 3);
+    }
+    return *this;
+}
 
 mat3 mat3::operator*(const mat3& other) const {
-#ifdef Naive_matmul
+#ifdef NaiveMethod
     mat3 result;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -284,6 +290,7 @@ mat4 mat4::fromQuaternion(const quat& q) {
 }
 
 mat4& mat4::operator=(const mat4& other) {
+#ifdef NaiveMethod
     if (this == &other) { // Handle self-assignment
         return *this;
     }
@@ -293,10 +300,19 @@ mat4& mat4::operator=(const mat4& other) {
         }
     }
     return *this;
+#else
+    if (this != &other) {
+        _mm_store_ps(&m[0][0], _mm_load_ps(&other.m[0][0]));
+        _mm_store_ps(&m[1][0], _mm_load_ps(&other.m[1][0]));
+        _mm_store_ps(&m[2][0], _mm_load_ps(&other.m[2][0]));
+        _mm_store_ps(&m[3][0], _mm_load_ps(&other.m[3][0]));
+    }
+    return *this;
+#endif
 }
 
 mat4 mat4::operator*(const mat4& other) const {
-#ifdef Naive_matmul
+#ifdef NaiveMethod
     mat4 result;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
