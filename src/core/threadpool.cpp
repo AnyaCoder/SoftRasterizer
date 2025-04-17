@@ -22,13 +22,13 @@ ThreadPool::~ThreadPool() {
 }
 
 // Enqueue a task (function) to be executed by the thread pool
-void ThreadPool::enqueue(std::function<void()> task) {
+void ThreadPool::enqueue(std::function<void()>&& task) {
     {
         std::unique_lock<std::mutex> lock(queueMutex);
         if (stop) {
             throw std::runtime_error("Cannot enqueue task: ThreadPool is stopped");
         }
-        tasks.emplace(task);
+        tasks.emplace(std::forward<std::function<void()>>(task));
     }
     condition.notify_one();
 }

@@ -89,7 +89,7 @@ void SDLApp::updateTextureFromFramebuffer(const Framebuffer& framebuffer) {
     }
 
     Uint8* dstPixels = static_cast<Uint8*>(texturePixels);
-    auto& pixels = framebuffer.getPixels();
+    
 #ifdef MultiThreading
     uint32_t numThreads = threadPool.getNumThreads();
     numThreads = std::max(1u, numThreads);
@@ -97,7 +97,8 @@ void SDLApp::updateTextureFromFramebuffer(const Framebuffer& framebuffer) {
 
     for (int startY = 0; startY < height; startY += rowsPerThread) {
         int endY = std::min(startY + rowsPerThread, height);
-        threadPool.enqueue([this, &framebuffer, dstPixels, pitch, &pixels, startY, endY]() {
+        threadPool.enqueue([this, &framebuffer, dstPixels, pitch, startY, endY]() {
+            auto& pixels = framebuffer.getPixels();
             for (int y = startY; y < endY; ++y) {
                 for (int x = 0; x < width; ++x) {
                     int framebufferY = y;
@@ -112,6 +113,7 @@ void SDLApp::updateTextureFromFramebuffer(const Framebuffer& framebuffer) {
     }
     threadPool.waitForCompletion();
 #else   
+    auto& pixels = framebuffer.getPixels();
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int framebufferY = y;

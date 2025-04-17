@@ -16,7 +16,7 @@ public:
     
     ThreadPool(uint32_t numThreads = 1u);
     ~ThreadPool();
-    void enqueue(std::function<void()> task);
+    void enqueue(std::function<void()>&& task);
     void waitForCompletion();
     int getNumThreads() const { return static_cast<int>(workers.size()); }
 
