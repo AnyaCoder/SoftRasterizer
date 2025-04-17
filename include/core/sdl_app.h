@@ -7,7 +7,7 @@
 
 class SDLApp {
 public:
-    SDLApp(int width, int height, const std::string& title);
+    SDLApp(int width, int height, const std::string& title, ThreadPool& tp);
     ~SDLApp();
 
     bool initialize();
@@ -29,6 +29,7 @@ private:
     float fps;
     Uint32 lastFrameTime;
     Uint32 fpsUpdateTimer;
+    ThreadPool& threadPool;
 
     void handleEvents();
     void updateFPS();

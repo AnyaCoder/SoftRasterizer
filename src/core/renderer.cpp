@@ -1,8 +1,11 @@
 // src/core/renderer.cpp
 #include "core/renderer.h"
-#include "core/camera.h" // Include camera definition
+#include "core/camera.h"
+#include "core/threadpool.h"
 
-Renderer::Renderer(Framebuffer& fb) : framebuffer(fb) {}
+Renderer::Renderer(Framebuffer& fb, ThreadPool& tp) 
+    : framebuffer(fb), 
+      threadPool(tp) {}
 
 void Renderer::setLights(const std::vector<Light>& l) {
     lights = l;
@@ -60,66 +63,84 @@ void Renderer::drawModel(const Model& model, const Transform& transform, const M
     // Lighting
     shader.uniform_CameraPosition = cameraPosition;
 
+    int numFaces = static_cast<int>(model.numFaces());
+#ifdef MultiThreading
+    int maxThreads = threadPool.getNumThreads();
+    int numThreads = std::max(1, std::min(maxThreads, numFaces));
+    int facesPerThread = (numFaces + numThreads - 1) / numThreads; // Ceiling division
     // --- Vertex Processing & Triangle Assembly ---
-     // Vertex Processing & Triangle Assembly
-    for (int i = 0; i < model.numFaces(); ++i) {
-        Model::Face face = model.getFace(i);
-        ScreenVertex screenVertices[3];
-        Varyings varyings[3];
-        bool triangleVisible = false;
+#else
+    int facesPerThread = 1; 
+#endif
+    for (int startFace = 0; startFace < numFaces; startFace += facesPerThread) {
 
-        // Vertex processing
-        for (int j = 0; j < 3; ++j) {
-            VertexInput vInput;
-            vInput.position = model.getVertex(face.vertIndex[j]);
-            vInput.normal = model.getNormal(face.normIndex[j]);
-            vInput.uv = model.getUV(face.uvIndex[j]);
-            vInput.tangent = model.getTangent(face.vertIndex[j]);
-            vInput.bitangent = model.getBitangent(face.vertIndex[j]);
+        int endFace = std::min(startFace + facesPerThread, numFaces);
+#ifdef MultiThreading
+        threadPool.enqueue([this, &model, &material, startFace, endFace]() {
+#endif
+            for (int i = startFace; i < endFace; ++i) {
+                Model::Face face = model.getFace(i);
+                ScreenVertex screenVertices[3];
+                Varyings varyings[3];
+                bool triangleVisible = false;
 
-            varyings[j] = material.shader->vertex(vInput);
+                // Vertex processing
+                for (int j = 0; j < 3; ++j) {
+                    VertexInput vInput;
+                    vInput.position = model.getVertex(face.vertIndex[j]);
+                    vInput.normal = model.getNormal(face.normIndex[j]);
+                    vInput.uv = model.getUV(face.uvIndex[j]);
+                    vInput.tangent = model.getTangent(face.vertIndex[j]);
+                    vInput.bitangent = model.getBitangent(face.vertIndex[j]);
 
-            // Check if vertex is in front of near plane and valid
-            float w = varyings[j].clipPosition.w;
-            float z = varyings[j].clipPosition.z;
-            if (w > 0 && z >= 0) {
-                triangleVisible = true;
+                    varyings[j] = material.shader->vertex(vInput);
+
+                    // Check if vertex is in front of near plane and valid
+                    float w = varyings[j].clipPosition.w;
+                    float z = varyings[j].clipPosition.z;
+                    if (w > 0 && z >= 0) {
+                        triangleVisible = true;
+                    }
+                }
+
+                if (!triangleVisible) continue;
+
+                // Perspective division and viewport transform
+                for (int j = 0; j < 3; ++j) {
+                    float w = varyings[j].clipPosition.w;
+                    if (w <= 0) continue;  // Skip invalid vertices
+                    float invW = 1.0f / w;
+                    vec3f ndcPos = {
+                        varyings[j].clipPosition.x * invW,
+                        varyings[j].clipPosition.y * invW,
+                        varyings[j].clipPosition.z * invW
+                    };
+
+                    screenVertices[j].x = static_cast<int>((ndcPos.x + 1.0f) * 0.5f * framebuffer.getWidth());
+                    screenVertices[j].y = static_cast<int>((ndcPos.y + 1.0f) * 0.5f * framebuffer.getHeight());
+                    screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f;
+                    screenVertices[j].invW = invW;
+                    screenVertices[j].varyings = varyings[j];
+                }
+
+                // Backface culling
+                vec2f p0 = {static_cast<float>(screenVertices[0].x), static_cast<float>(screenVertices[0].y)};
+                vec2f p1 = {static_cast<float>(screenVertices[1].x), static_cast<float>(screenVertices[1].y)};
+                vec2f p2 = {static_cast<float>(screenVertices[2].x), static_cast<float>(screenVertices[2].y)};
+                float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
+                if (signedArea < 0) continue;
+
+                drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
             }
-        }
-
-        if (!triangleVisible) {
-            continue;
-        }
-
-        // Perspective division and viewport transform
-        for (int j = 0; j < 3; ++j) {
-            float w = varyings[j].clipPosition.w;
-            if (w <= 0) continue; // Skip invalid vertices
-            float invW = 1.0f / w;
-            vec3f ndcPos = {
-                varyings[j].clipPosition.x * invW,
-                varyings[j].clipPosition.y * invW,
-                varyings[j].clipPosition.z * invW
-            };
-
-            screenVertices[j].x = static_cast<int>((ndcPos.x + 1.0f) * 0.5f * framebuffer.getWidth());
-            screenVertices[j].y = static_cast<int>((ndcPos.y + 1.0f) * 0.5f * framebuffer.getHeight());
-            screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f; // Map to [0, 1]
-            screenVertices[j].invW = invW;
-            screenVertices[j].varyings = varyings[j];
-        }
-
-        // Backface culling
-        vec2f p0 = {static_cast<float>(screenVertices[0].x), static_cast<float>(screenVertices[0].y)};
-        vec2f p1 = {static_cast<float>(screenVertices[1].x), static_cast<float>(screenVertices[1].y)};
-        vec2f p2 = {static_cast<float>(screenVertices[2].x), static_cast<float>(screenVertices[2].y)};
-        float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
-        if (signedArea < 0) {
-            continue;
-        }
-
-        drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
+#ifdef MultiThreading
+        });
+#endif
     }
+
+#ifdef MultiThreading
+    // Wait for all tasks to complete
+    threadPool.waitForCompletion();
+#endif
 }
 
 

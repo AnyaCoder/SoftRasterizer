@@ -5,7 +5,10 @@
 #include <iostream>
 
 Scene::Scene(int width, int height)
-    : framebuffer(width, height), renderer(framebuffer), camera(vec3f(0, 0, 0), vec3f(0, 0, -1), vec3f(0, 1, 0)) {}
+    : threadPool(std::max(1U, std::thread::hardware_concurrency() - 1)),
+      framebuffer(width, height, threadPool),
+      renderer(framebuffer, threadPool), 
+      camera(vec3f(0, 0, 0), vec3f(0, 0, -1), vec3f(0, 1, 0)) {}
 
 bool Scene::loadFromYAML(const std::string& filename) {
     try {

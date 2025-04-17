@@ -1,16 +1,18 @@
 // include/core/renderer.h
 #pragma once
 
-#include "framebuffer.h"
-#include "shader.h"
-#include "model.h"
-#include "light.h"
-#include "camera.h"
+#include "core/framebuffer.h"
+#include "core/shader.h"
+#include "core/model.h"
+#include "core/light.h"
+#include "core/camera.h"
+#include "core/threadpool.h"
 #include "math/matrix.h"
 #include "math/transform.h"
 #include <vector>
 #include <memory>
 
+class ThreadPool;
 
 struct ScreenVertex {
     int x, y;
@@ -21,7 +23,7 @@ struct ScreenVertex {
 
 class Renderer {
 public:
-    Renderer(Framebuffer& fb);
+    Renderer(Framebuffer& fb, ThreadPool& tp);
 
     void setLights(const std::vector<Light>& l);
     void setCamera(const Camera& cam); // Store view/projection matrices
@@ -35,6 +37,7 @@ private:
     mat4 viewMatrix;
     mat4 projectionMatrix;
     vec3f cameraPosition;
+    ThreadPool& threadPool;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
     void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material);

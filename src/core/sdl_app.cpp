@@ -2,10 +2,10 @@
 #include "core/sdl_app.h"
 #include <iostream>
 
-SDLApp::SDLApp(int width, int height, const std::string& title)
+SDLApp::SDLApp(int width, int height, const std::string& title, ThreadPool& tp)
     : width(width), height(height), title(title), window(nullptr), sdlRenderer(nullptr),
       framebufferTexture(nullptr), quit(false), deltaTime(0.0f), frameCount(0), fps(0.0f),
-      lastFrameTime(0), fpsUpdateTimer(0) {}
+      lastFrameTime(0), fpsUpdateTimer(0), threadPool(tp) {}
 
 SDLApp::~SDLApp() {
     if (framebufferTexture) SDL_DestroyTexture(framebufferTexture);
@@ -90,18 +90,39 @@ void SDLApp::updateTextureFromFramebuffer(const Framebuffer& framebuffer) {
 
     Uint8* dstPixels = static_cast<Uint8*>(texturePixels);
     auto& pixels = framebuffer.getPixels();
+#ifdef MultiThreading
+    uint32_t numThreads = threadPool.getNumThreads();
+    numThreads = std::max(1u, numThreads);
+    int rowsPerThread = (height + numThreads - 1) / numThreads; // Ceiling division
 
+    for (int startY = 0; startY < height; startY += rowsPerThread) {
+        int endY = std::min(startY + rowsPerThread, height);
+        threadPool.enqueue([this, &framebuffer, dstPixels, pitch, &pixels, startY, endY]() {
+            for (int y = startY; y < endY; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    int framebufferY = y;
+                    const vec3f& color = pixels[framebufferY * width + x];
+                    Uint8* dstPixel = dstPixels + y * pitch + x * 3;
+                    dstPixel[0] = static_cast<Uint8>(std::round(color.x * 255.0f));
+                    dstPixel[1] = static_cast<Uint8>(std::round(color.y * 255.0f));
+                    dstPixel[2] = static_cast<Uint8>(std::round(color.z * 255.0f));
+                }
+            }
+        });
+    }
+    threadPool.waitForCompletion();
+#else   
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int framebufferY = y;
             const vec3f& color = pixels[framebufferY * width + x];
             Uint8* dstPixel = dstPixels + y * pitch + x * 3;
-            dstPixel[0] = static_cast<Uint8>(std::max(0.0f, std::min(255.0f, std::round(color.x * 255.0f))));
-            dstPixel[1] = static_cast<Uint8>(std::max(0.0f, std::min(255.0f, std::round(color.y * 255.0f))));
-            dstPixel[2] = static_cast<Uint8>(std::max(0.0f, std::min(255.0f, std::round(color.z * 255.0f))));
+            dstPixel[0] = static_cast<Uint8>(std::round(color.x * 255.0f));
+            dstPixel[1] = static_cast<Uint8>(std::round(color.y * 255.0f));
+            dstPixel[2] = static_cast<Uint8>(std::round(color.z * 255.0f));
         }
     }
-
+#endif
     SDL_UnlockTexture(framebufferTexture);
 }
 
@@ -112,10 +133,10 @@ void SDLApp::run(const std::function<const Framebuffer&(float)>& renderCallback)
 
         // Call the render callback to get the framebuffer
         const Framebuffer& framebuffer = renderCallback(deltaTime);
-
+        SDL_RenderClear(sdlRenderer);
         // Update SDL texture and render
         updateTextureFromFramebuffer(framebuffer);
-        SDL_RenderClear(sdlRenderer);
+        
         SDL_RenderCopy(sdlRenderer, framebufferTexture, nullptr, nullptr);
         SDL_RenderPresent(sdlRenderer);
     }

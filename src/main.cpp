@@ -6,15 +6,15 @@ int main(int argc, char* argv[]) {
     const int width = 800;
     const int height = 800;
 
+    // Initialize scene
+    Scene scene(width, height);
     // Initialize SDL application
-    SDLApp app(width, height, "Software Rasterizer");
+    SDLApp app(width, height, "Software Rasterizer", scene.getThreadPool());
     if (!app.initialize()) {
         std::cerr << "Failed to initialize SDLApp" << std::endl;
         return 1;
     }
 
-    // Initialize scene
-    Scene scene(width, height);
     if (!scene.loadFromYAML("scenes/scene.yaml")) {
         std::cerr << "Failed to load scene, using default" << std::endl;
     }

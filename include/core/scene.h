@@ -11,6 +11,8 @@
 #include <string>
 #include <memory>
 
+class ThreadPool;
+
 struct SceneObject {
     Model model;
     Material material;
@@ -28,6 +30,7 @@ public:
     void update(float deltaTime);
     void render();
     const Framebuffer& getFramebuffer() { return framebuffer; }
+    ThreadPool& getThreadPool() { return threadPool; } 
 
 private:
     Framebuffer framebuffer;
@@ -35,6 +38,7 @@ private:
     Camera camera;
     std::vector<Light> lights;
     std::vector<SceneObject> objects;
+    ThreadPool threadPool;
 
     void initializeDefaultScene(); // Fallback if YAML loading fails
 };
