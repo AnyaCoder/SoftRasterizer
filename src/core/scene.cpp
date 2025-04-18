@@ -118,19 +118,19 @@ bool Scene::loadFromYAML(const std::string& filename) {
 
                 // Texture Uniforms and Flags
                 shader.uniform_DiffuseTexture = mat.diffuseTexture;
-                shader.uniform_UseDiffuseMap = !mat.diffuseTexture.empty(); // Set flag
+                shader.uniform_UseDiffuseMap = mat.diffuseTexture != nullptr; // Set flag
 
                 shader.uniform_NormalTexture = mat.normalTexture;
-                shader.uniform_UseNormalMap = !mat.normalTexture.empty();
+                shader.uniform_UseNormalMap = mat.normalTexture != nullptr;
 
                 shader.uniform_AoTexture = mat.aoTexture; // Set AO map
-                shader.uniform_UseAoMap = !mat.aoTexture.empty();
+                shader.uniform_UseAoMap = mat.aoTexture != nullptr;
 
                 shader.uniform_SpecularTexture = mat.specularTexture; // Set Specular map
-                shader.uniform_UseSpecularMap = !mat.specularTexture.empty();
+                shader.uniform_UseSpecularMap = mat.specularTexture != nullptr;
 
                 shader.uniform_GlossTexture = mat.glossTexture; // Set Gloss map
-                shader.uniform_UseGlossMap = !mat.glossTexture.empty();
+                shader.uniform_UseGlossMap = mat.glossTexture != nullptr;
 
                 objects.push_back(obj);
             }

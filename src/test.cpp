@@ -80,3 +80,70 @@ int test_main() {
 
     return 0;
 }
+
+#include <filesystem>
+#include "core/texture/dds_texture.h"
+
+namespace fs = std::filesystem;
+
+struct FileInfo {
+    std::string filename;
+    std::string compressionFormat;
+    bool loadedSuccessfully;
+    std::string errorMessage;
+};
+
+
+int test_texture() {
+    std::string directoryPath = "resources/Bistro_v5_2/Textures";
+    std::vector<FileInfo> fileInfos;
+    int totalFiles = 0;
+    int successfulLoads = 0;
+
+    if (!fs::exists(directoryPath) || !fs::is_directory(directoryPath)) {
+        std::cerr << "Error: Directory does not exist or is not a directory: " << directoryPath << std::endl;
+        return 1;
+    }
+
+    for (const auto& entry : fs::directory_iterator(directoryPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".dds") {
+            totalFiles++;
+            std::string filepath = entry.path().string();
+            DDSTexture texture;
+            FileInfo info;
+            info.filename = filepath;
+
+            std::string format, error;
+            if (!DDSTexture::getCompressionFormat(filepath, format, error)) {
+                info.compressionFormat = format;
+                info.loadedSuccessfully = false;
+                info.errorMessage = error;
+            } else {
+                info.compressionFormat = format;
+                if (texture.load(filepath)) {
+                    info.loadedSuccessfully = true;
+                    successfulLoads++;
+                } else {
+                    info.loadedSuccessfully = false;
+                    info.errorMessage = "Unsupported or corrupted DDS file";
+                }
+            }
+
+            fileInfos.push_back(info);
+        }
+    }
+
+    std::cout << "DDS File Compression Formats:\n";
+    for (const auto& info : fileInfos) {
+        std::cout << "File: " << info.filename << "\n";
+        std::cout << "Compression Format: " << info.compressionFormat << "\n";
+        if (!info.loadedSuccessfully) {
+            std::cout << "Error: " << info.errorMessage << "\n";
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << "Successfully loaded " << successfulLoads << "/" << totalFiles << " DDS files" << std::endl;
+
+    return 0;
+}

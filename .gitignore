@@ -25,3 +25,6 @@ cmake_install.cmake
 
 # Third-Party Lib (See buildandrun.sh to fetch them)
 thirdparty/
+
+# Bistro Scene
+resources/Bistro_v5_2/

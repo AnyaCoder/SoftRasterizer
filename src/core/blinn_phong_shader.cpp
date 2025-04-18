@@ -49,7 +49,7 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     vec3f N;
     if (uniform_UseNormalMap) {
         // Sample normal map (returns color in [0, 1] range)
-        vec3f tangentNormalSample = uniform_NormalTexture.sample(input.uv.x, input.uv.y);
+        vec3f tangentNormalSample = uniform_NormalTexture->sample(input.uv.x, input.uv.y);
 
         // Map color [0, 1] to normal vector [-1, 1]
         vec3f tangentNormal = (tangentNormalSample * 2.0f) - vec3f(1.0f, 1.0f, 1.0f);
@@ -74,20 +74,20 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     // Diffuse Color (with texture modulation)
     vec3f matDiffuse = uniform_DiffuseColor;
     if (uniform_UseDiffuseMap) {
-        matDiffuse = matDiffuse * uniform_DiffuseTexture.sample(input.uv.x, input.uv.y);
+        matDiffuse = matDiffuse * uniform_DiffuseTexture->sample(input.uv.x, input.uv.y);
     }
 
     // Specular Color (with texture override)
     vec3f matSpecular = uniform_SpecularColor;
     if (uniform_UseSpecularMap) {
-        matSpecular = uniform_SpecularTexture.sample(input.uv.x, input.uv.y); // Use map value
+        matSpecular = uniform_SpecularTexture->sample(input.uv.x, input.uv.y); // Use map value
     }
 
     // Shininess/Gloss (with texture override)
     int currentShininess = uniform_Shininess; // Default
     if (uniform_UseGlossMap) {
         // Sample gloss map (assume single channel, e.g., .x)
-        float glossFactor = uniform_GlossTexture.sample(input.uv.x, input.uv.y).x;
+        float glossFactor = uniform_GlossTexture->sample(input.uv.x, input.uv.y).x;
         glossFactor = std::max(0.0f, std::min(1.0f, glossFactor)); // Clamp [0, 1]
 
         // Map gloss [0, 1] to shininess range [min, max]
@@ -106,7 +106,7 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
     float aoFactor = 1.0f; // Default: no occlusion
     if (uniform_UseAoMap) {
         // Sample AO map (assume single channel, e.g., .x)
-        aoFactor = uniform_AoTexture.sample(input.uv.x, input.uv.y).x;
+        aoFactor = uniform_AoTexture->sample(input.uv.x, input.uv.y).x;
         aoFactor = std::max(0.0f, std::min(1.0f, aoFactor)); // Clamp [0, 1]
     }
 

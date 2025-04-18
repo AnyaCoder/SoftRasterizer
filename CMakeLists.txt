@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(SoftRasterizer)
 
 # 设置C++标准
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find SDL2
@@ -21,6 +21,7 @@ endif()
 file(GLOB SOURCES
     "src/*.cpp"
     "src/core/*.cpp" 
+    "src/core/texture/*.cpp" 
     "src/io/*.cpp"
     "src/math/*.cpp"
 )

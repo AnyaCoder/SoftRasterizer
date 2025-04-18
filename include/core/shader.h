@@ -4,7 +4,7 @@
 #include "math/vector.h"
 #include "math/matrix.h"
 #include "core/light.h"
-#include "core/texture.h"
+#include "core/texture/texture.h"
 #include "core/material.h"
 #include <vector>
 #include <map>
@@ -49,20 +49,20 @@ public:
     int uniform_Shininess;
 
     // Textures
-    Texture uniform_DiffuseTexture;
-    bool uniform_UseDiffuseMap = false; // Optional: Add flags for all maps for clarity
+    std::shared_ptr<Texture> uniform_DiffuseTexture;
+    bool uniform_UseDiffuseMap = false;
 
-    Texture uniform_NormalTexture;
+    std::shared_ptr<Texture> uniform_NormalTexture;
     bool uniform_UseNormalMap = false;
 
-    Texture uniform_AoTexture;          // Added AO Texture uniform
-    bool uniform_UseAoMap = false;      // Added AO flag
+    std::shared_ptr<Texture> uniform_AoTexture;
+    bool uniform_UseAoMap = false;
 
-    Texture uniform_SpecularTexture;    // Added Specular Texture uniform
-    bool uniform_UseSpecularMap = false;// Added Specular flag
+    std::shared_ptr<Texture> uniform_SpecularTexture;
+    bool uniform_UseSpecularMap = false;
 
-    Texture uniform_GlossTexture;       // Added Gloss Texture uniform
-    bool uniform_UseGlossMap = false;   // Added Gloss flag
+    std::shared_ptr<Texture> uniform_GlossTexture;
+    bool uniform_UseGlossMap = false;
 
     // --- Lighting Uniforms ---
     vec3f uniform_CameraPosition;

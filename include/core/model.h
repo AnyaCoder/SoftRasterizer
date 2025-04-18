@@ -4,7 +4,7 @@
 #include <string>
 #include "math/vector.h"
 #include "math/matrix.h"
-#include "core/texture.h"
+#include "core/texture/texture.h"
 
 class Model {
 public:
