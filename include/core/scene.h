@@ -6,6 +6,7 @@
 #include "core/camera.h"
 #include "core/material.h"
 #include "core/light.h"
+#include "core/resource_manager.h" 
 #include "math/transform.h"
 #include <vector>
 #include <string>
@@ -14,8 +15,8 @@
 class ThreadPool;
 
 struct SceneObject {
-    Model model;
-    Material material;
+    std::shared_ptr<Model> modelPtr;
+    std::shared_ptr<Material> materialPtr;
     Transform transform;
     struct Animation {
         enum class Type { None, RotateY } type = Type::None;
@@ -25,20 +26,19 @@ struct SceneObject {
 
 class Scene {
 public:
-    Scene(int width, int height);
+    Scene(int width, int height, ResourceManager& resManager);
     bool loadFromYAML(const std::string& filename);
     void update(float deltaTime);
-    void render();
-    const Framebuffer& getFramebuffer() { return framebuffer; }
-    ThreadPool& getThreadPool() { return threadPool; } 
+    void render(Renderer& renderer);
 
+    Camera& getCamera() { return camera; }
+    auto& getObjects() { return objects; }
+    auto& getLights() { return lights; }
+    
 private:
-    Framebuffer framebuffer;
-    Renderer renderer;
+    ResourceManager& resourceManager; 
     Camera camera;
     std::vector<Light> lights;
     std::vector<SceneObject> objects;
-    ThreadPool threadPool;
 
-    void initializeDefaultScene(); // Fallback if YAML loading fails
 };

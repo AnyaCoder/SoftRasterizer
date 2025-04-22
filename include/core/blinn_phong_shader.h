@@ -2,6 +2,7 @@
 #pragma once
 #include "math/vector.h"
 #include "core/shader.h"
+#include <iostream>
 
 class BlinnPhongShader : public Shader {
 public:

@@ -22,6 +22,7 @@ cmake_install.cmake
 
 # Temporary File
 *.tmp
+*.diff
 
 # Third-Party Lib (See buildandrun.sh to fetch them)
 thirdparty/

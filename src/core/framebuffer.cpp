@@ -3,9 +3,9 @@
 #include <iostream>
 
 Framebuffer::Framebuffer(int w, int h, ThreadPool& tp) 
-    : width(w), height(h), pixels(w * h), 
-        zBuffer(w * h, 1.0f), pixelLocks(LOCK_POOL_SIZE), threadPool(tp) {
-
+    : width(w), height(h), pixels(w * h), zBuffer(w * h, 1.0f), 
+        pixelLocks(LOCK_POOL_SIZE), threadPool(tp) {
+    std::cout << "Framebuffer::Framebuffer" << std::endl; 
 }
 
 void Framebuffer::clear(const vec3f& color) {

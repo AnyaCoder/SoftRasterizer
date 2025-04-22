@@ -2,6 +2,8 @@ camera:
   position: [0, 1, 3]
   target: [0, 0, 0]
   up: [0, 1, 0]
+  width: 800
+  height: 800
   fov: 45.0
   near: 0.1
   far: 100.0
@@ -14,7 +16,7 @@ objects:
   - name: head
     model: resources/obj/african_head.obj
     material:
-      shader: blinn_phong
+      shader: BlinnPhong
       diffuse_texture: resources/diffuse/african_head_diffuse.tga
       normal_texture: resources/normal_tangent/african_head_nm_tangent.tga
       specular_texture: resources/spec/african_head_spec.tga
@@ -28,7 +30,7 @@ objects:
   - name: eye_inner
     model: resources/obj/african_head_eye_inner.obj
     material:
-      shader: blinn_phong
+      shader: BlinnPhong
       diffuse_texture: resources/diffuse/african_head_eye_inner_diffuse.tga
       normal_texture: resources/normal_tangent/african_head_eye_inner_nm_tangent.tga
       specular_texture: resources/spec/african_head_eye_inner_spec.tga

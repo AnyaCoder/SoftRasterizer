@@ -3,7 +3,8 @@
 #include <iostream>
 
 // Constructor: Initializes the thread pool with a specified number of threads
-ThreadPool::ThreadPool(uint32_t numThreads) : stop(false), activeTasks(0) {
+ThreadPool::ThreadPool(uint32_t numThreads) 
+    : numThreads(numThreads), stop(false), activeTasks(0) {
     for (uint32_t i = 0; i < numThreads; ++i) {
         workers.emplace_back(&ThreadPool::workerThread, this);
     }

@@ -2,6 +2,10 @@
 
 mkdir -p thirdparty
 
+if [ ! -d "thirdparty/imgui" ]; then
+    git clone https://github.com/ocornut/imgui.git -b docking --depth=1 ./thirdparty/imgui
+fi
+
 if [ ! -d "thirdparty/SDL2" ]; then
     SDL_URL="https://github.com/libsdl-org/SDL/releases/download/release-2.32.4/SDL2-devel-2.32.4-VC.zip"
     SDL_ZIP="thirdparty/SDL2-devel-2.32.4-VC.zip"
@@ -29,6 +33,6 @@ fi
 # Build
 mkdir -p build
 cmake -S . -B build
-cmake --build build --config Release -j$(nproc)
+cmake --build build --config Release -j 4
 cd ./build/bin
 ./SoftRasterizer

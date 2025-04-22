@@ -38,6 +38,7 @@ struct mat4 {
 
     mat4();
     mat4(float v);
+    mat3 toMat3();
     static mat4 identity();
     static mat4 translation(float x, float y, float z);
     static mat4 scale(float x, float y, float z);

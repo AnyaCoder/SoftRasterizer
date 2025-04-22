@@ -18,9 +18,10 @@ public:
     ~ThreadPool();
     void enqueue(std::function<void()>&& task);
     void waitForCompletion();
-    int getNumThreads() const { return static_cast<int>(workers.size()); }
+    int getNumThreads() const { return static_cast<int>(numThreads); }
 
 private:
+    uint32_t numThreads;
     std::vector<std::thread> workers;
     std::queue<std::function<void()>> tasks;
     std::mutex queueMutex;

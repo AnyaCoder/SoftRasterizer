@@ -17,6 +17,34 @@ if (NOT yaml-cpp_FOUND)
     add_subdirectory(thirdparty/yaml-cpp EXCLUDE_FROM_ALL)
 endif()
 
+# ImGui 包含文件
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/thirdparty/imgui)
+set(IMGUI_INCLUDE_DIRS 
+    ${CMAKE_SOURCE_DIR}/thirdparty/imgui
+    ${CMAKE_SOURCE_DIR}/thirdparty/imgui/backends
+)
+# ImGui 源文件
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+)
+
+# 创建 ImGui 动态库
+add_library(imgui STATIC ${IMGUI_SOURCES})
+target_include_directories(imgui PRIVATE ${SDL2_INCLUDE_DIRS})
+target_include_directories(imgui PUBLIC ${IMGUI_INCLUDE_DIRS}) # Keep PUBLIC for ImGui headers
+target_link_libraries(imgui PRIVATE SDL2::SDL2) # SDL2 is internal to imgui
+set_target_properties(imgui PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+)
+
 # 源文件
 file(GLOB SOURCES
     "src/*.cpp"
@@ -29,39 +57,35 @@ file(GLOB SOURCES
 # 创建可执行文件
 add_executable(SoftRasterizer ${SOURCES})
 
+# 包含目录
+target_include_directories(SoftRasterizer PRIVATE
+    include
+    ${SDL2_INCLUDE_DIRS}
+    ${IMGUI_INCLUDE_DIRS}
+)
+
 # Link libraries
-if(TARGET SDL2::SDL2)
-    message(STATUS "Linking against imported target SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp")
-    target_link_libraries(SoftRasterizer PRIVATE SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp)
-else()
-    message(WARNING "SDL2 imported target not found, linking using variables SDL2_LIBRARIES")
-    target_link_libraries(SoftRasterizer PRIVATE ${SDL2_LIBRARIES} yaml-cpp::yaml-cpp)
-endif()
+message(STATUS "Linking against imported target SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp imgui")
+target_link_libraries(SoftRasterizer PRIVATE SDL2::SDL2 SDL2::SDL2main yaml-cpp::yaml-cpp imgui)
 
-target_include_directories(SoftRasterizer PRIVATE include ${SDL2_INCLUDE_DIRS})
-
-include(CheckCXXCompilerFlag) # 包含检查编译器标志的功能
+# 编译器优化选项
+include(CheckCXXCompilerFlag)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # 对于 GCC 或 Clang，尝试使用 -march=native
     check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
     if(COMPILER_SUPPORTS_MARCH_NATIVE)
         message(STATUS "Compiler supports -march=native. Enabling for Release builds.")
-        # 使用 $<CONFIG:Release> 生成器表达式确保只在Release模式下添加
         target_compile_options(SoftRasterizer PRIVATE $<$<CONFIG:Release>:-march=native>)
     else()
         message(WARNING "Compiler does not support -march=native. Vectorization might rely on default flags or require manual SSE/AVX flags.")
-        # 可以选择性地添加 -mavx2 或 -msse4.2 等后备选项
         check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
         if(COMPILER_SUPPORTS_AVX2)
-           target_compile_options(SoftRasterizer PRIVATE $<$<CONFIG:Release>:-mavx2>)
+            target_compile_options(SoftRasterizer PRIVATE $<$<CONFIG:Release>:-mavx2>)
         else()
             message(WARNING "Compiler does not support -march=avx2.")
         endif()
     endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    # 对于 MSVC，尝试使用 /arch:AVX2 (需要 Visual Studio 2013 Update 2 或更高版本)
-    # /O2 优化级别（Release默认）是自动向量化的前提
     check_cxx_compiler_flag("/arch:AVX2" COMPILER_SUPPORTS_ARCH_AVX2)
     if(COMPILER_SUPPORTS_ARCH_AVX2)
         message(STATUS "Compiler supports /arch:AVX2. Enabling for Release builds.")
@@ -84,6 +108,7 @@ set_target_properties(SoftRasterizer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
 )
+
 
 # Copy resources and scene file
 add_custom_command(TARGET SoftRasterizer POST_BUILD

@@ -220,6 +220,14 @@ mat4::mat4(float v) {
     for (int i = 0; i < 4; i++) m[i][i] = v;
 }
 
+mat3 mat4::toMat3() {
+    mat3 newMat;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            newMat.m[i][j] = m[i][j];
+    return newMat;
+}
+
 mat4 mat4::identity() {
     return mat4(1.0f);
 }

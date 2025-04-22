@@ -3,18 +3,22 @@
 #include "core/camera.h"
 #include "core/threadpool.h"
 
-Renderer::Renderer(Framebuffer& fb, ThreadPool& tp) 
-    : framebuffer(fb), 
-      threadPool(tp) {}
+Renderer::Renderer(Framebuffer& fb, ThreadPool& tp)
+    : framebuffer(fb),
+      threadPool(tp) {
+    std::cout << "Renderer::Renderer" << std::endl;
+}
 
 void Renderer::setLights(const std::vector<Light>& l) {
+    // Store lights for the current frame
     lights = l;
 }
 
-void Renderer::setCamera(const Camera& cam) {
-    viewMatrix = cam.getViewMatrix();
-    projectionMatrix = cam.getProjectionMatrix();
-    cameraPosition = cam.getPosition(); // Need camera world position for lighting
+// New function to set camera parameters per frame
+void Renderer::setCameraParams(const mat4& view, const mat4& projection, const vec3f& camPos) {
+    viewMatrix = view;
+    projMatrix = projection;
+    currentCameraPosition = camPos;
 }
 
 void Renderer::clear(const vec3f& color) {
@@ -42,105 +46,153 @@ Varyings Renderer::interpolateVaryings(float t, const Varyings& start, const Var
     return result;
 }
 
-
-void Renderer::drawModel(const Model& model, const Transform& transform, const Material& material) {
-    if (!material.shader) {
-        std::cerr << "Error: No shader set for rendering!" << std::endl;
-        return;
-    }
-
-    auto& shader = *material.shader; // Use reference for convenience
-
+// Helper function to set shader uniforms based on current state and command
+void Renderer::setupShaderUniforms(Shader& shader, const DrawCommand& command) {
     // Matrices
-    mat4 modelMatrix = transform.getTransformMatrix();
-    mat3 normalMatrix = transform.getNormalMatrix(); 
+    mat4 modelMatrix = command.modelMatrix;
+    mat3 normalMatrix = modelMatrix.toMat3().inverse().transpose(); // Calculate normal matrix
     shader.uniform_ModelMatrix = modelMatrix;
     shader.uniform_ViewMatrix = viewMatrix;
-    shader.uniform_ProjectionMatrix = projectionMatrix;
-    shader.uniform_MVP = projectionMatrix * viewMatrix * modelMatrix;
+    shader.uniform_ProjectionMatrix = projMatrix;
+    shader.uniform_MVP = projMatrix * viewMatrix * modelMatrix;
     shader.uniform_NormalMatrix = normalMatrix;
 
     // Lighting
-    shader.uniform_CameraPosition = cameraPosition;
+    shader.uniform_CameraPosition = currentCameraPosition;
+    shader.uniform_Lights = lights;
 
-    int numFaces = static_cast<int>(model.numFaces());
-#ifdef MultiThreading
-    int maxThreads = threadPool.getNumThreads();
-    int numThreads = std::max(1, std::min(maxThreads, numFaces));
-    int facesPerThread = (numFaces + numThreads - 1) / numThreads; // Ceiling division
-    // --- Vertex Processing & Triangle Assembly ---
-#else
-    int facesPerThread = 1; 
-#endif
-    for (int startFace = 0; startFace < numFaces; startFace += facesPerThread) {
+    // Material Properties (from command.material)
+    const Material* mat = command.material;
+    if (mat) {
+        shader.uniform_AmbientColor = mat->ambientColor;
+        shader.uniform_DiffuseColor = mat->diffuseColor;
+        shader.uniform_SpecularColor = mat->specularColor;
+        shader.uniform_Shininess = mat->shininess;
 
-        int endFace = std::min(startFace + facesPerThread, numFaces);
-#ifdef MultiThreading
-        threadPool.enqueue([this, &model, &material, startFace, endFace]() {
-#endif
-            for (int i = startFace; i < endFace; ++i) {
-                Model::Face face = model.getFace(i);
-                ScreenVertex screenVertices[3];
-                Varyings varyings[3];
-                bool triangleVisible = false;
+        // Texture Uniforms and Flags
+        shader.uniform_DiffuseTexture = mat->diffuseTexture;
+        shader.uniform_UseDiffuseMap = (mat->diffuseTexture && !mat->diffuseTexture->empty());
 
-                // Vertex processing
-                for (int j = 0; j < 3; ++j) {
-                    VertexInput vInput;
-                    vInput.position = model.getVertex(face.vertIndex[j]);
-                    vInput.normal = model.getNormal(face.normIndex[j]);
-                    vInput.uv = model.getUV(face.uvIndex[j]);
-                    vInput.tangent = model.getTangent(face.vertIndex[j]);
-                    vInput.bitangent = model.getBitangent(face.vertIndex[j]);
+        shader.uniform_NormalTexture = mat->normalTexture;
+        shader.uniform_UseNormalMap = (mat->normalTexture && !mat->normalTexture->empty());
 
-                    varyings[j] = material.shader->vertex(vInput);
+        shader.uniform_AoTexture = mat->aoTexture;
+        shader.uniform_UseAoMap = (mat->aoTexture && !mat->aoTexture->empty());
 
-                    // Check if vertex is in front of near plane and valid
-                    float w = varyings[j].clipPosition.w;
-                    float z = varyings[j].clipPosition.z;
-                    if (w > 0 && z >= 0) {
-                        triangleVisible = true;
-                    }
-                }
+        shader.uniform_SpecularTexture = mat->specularTexture;
+        shader.uniform_UseSpecularMap = (mat->specularTexture && !mat->specularTexture->empty());
 
-                if (!triangleVisible) continue;
+        shader.uniform_GlossTexture = mat->glossTexture;
+        shader.uniform_UseGlossMap = (mat->glossTexture && !mat->glossTexture->empty());
+    } else {
+        // Handle case where material is null? Set defaults? Error?
+        std::cerr << "Warning: Material pointer is null in DrawCommand." << std::endl;
+    }
+}
 
-                // Perspective division and viewport transform
-                for (int j = 0; j < 3; ++j) {
-                    float w = varyings[j].clipPosition.w;
-                    if (w <= 0) continue;  // Skip invalid vertices
-                    float invW = 1.0f / w;
-                    vec3f ndcPos = {
-                        varyings[j].clipPosition.x * invW,
-                        varyings[j].clipPosition.y * invW,
-                        varyings[j].clipPosition.z * invW
-                    };
-
-                    screenVertices[j].x = static_cast<int>((ndcPos.x + 1.0f) * 0.5f * framebuffer.getWidth());
-                    screenVertices[j].y = static_cast<int>((ndcPos.y + 1.0f) * 0.5f * framebuffer.getHeight());
-                    screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f;
-                    screenVertices[j].invW = invW;
-                    screenVertices[j].varyings = varyings[j];
-                }
-
-                // Backface culling
-                vec2f p0 = {static_cast<float>(screenVertices[0].x), static_cast<float>(screenVertices[0].y)};
-                vec2f p1 = {static_cast<float>(screenVertices[1].x), static_cast<float>(screenVertices[1].y)};
-                vec2f p2 = {static_cast<float>(screenVertices[2].x), static_cast<float>(screenVertices[2].y)};
-                float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
-                if (signedArea < 0) continue;
-
-                drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
-            }
-#ifdef MultiThreading
-        });
-#endif
+// New submit function replacing drawModel
+void Renderer::submit(const DrawCommand& command) {
+    // Validate command components
+    if (!command.model || !command.material || !command.material->shader) {
+        std::cerr << "Error: Invalid DrawCommand - missing model, material, or shader." << std::endl;
+        return;
     }
 
+    const Model& model = *command.model;
+    const Material& material = *command.material;
+    Shader& shader = *material.shader; // Use reference for convenience
+
+    // Set up all shader uniforms based on current renderer state and the command
+    setupShaderUniforms(shader, command);
+
+    // --- Face Processing Loop ---
+    int numFaces = static_cast<int>(model.numFaces());
+    if (numFaces <= 0) return; // Nothing to draw
+
 #ifdef MultiThreading
+    int maxThreads = threadPool.getNumThreads();
+    // Determine reasonable number of threads based on face count
+    int facesPerThread = std::max(10, (numFaces + maxThreads - 1) / maxThreads); // Min 10 faces/thread
+    int numThreadsToUse = std::max(1, (numFaces + facesPerThread - 1) / facesPerThread);
+
+    for (int t = 0; t < numThreadsToUse; ++t) {
+        int startFace = t * facesPerThread;
+        int endFace = std::min(startFace + facesPerThread, numFaces);
+
+        if (startFace >= endFace) continue; // Skip if no faces for this thread
+
+        threadPool.enqueue([this, &model, &material, &shader, startFace, endFace]() {
+            // Per-thread processing loop
+            for (int i = startFace; i < endFace; ++i) {
+                 processFace(model, material, shader, i);
+            }
+        });
+    }
     // Wait for all tasks to complete
     threadPool.waitForCompletion();
+
+#else // Single-threaded version
+    for (int i = 0; i < numFaces; ++i) {
+        processFace(model, material, shader, i);
+    }
 #endif
+}
+
+
+void Renderer::processFace(const Model& model, const Material& material, Shader& shader, int faceIndex) {
+    Model::Face face = model.getFace(faceIndex);
+    ScreenVertex screenVertices[3];
+    Varyings varyings[3];
+    bool triangleVisible = false;
+
+    // Vertex processing
+    for (int j = 0; j < 3; ++j) {
+        VertexInput vInput;
+        vInput.position = model.getVertex(face.vertIndex[j]);
+        vInput.normal = model.getNormal(face.normIndex[j]);
+        vInput.uv = model.getUV(face.uvIndex[j]);
+        vInput.tangent = model.getTangent(face.vertIndex[j]);
+        vInput.bitangent = model.getBitangent(face.vertIndex[j]);
+
+        varyings[j] = material.shader->vertex(vInput);
+
+        // Check if vertex is in front of near plane and valid
+        float w = varyings[j].clipPosition.w;
+        float z = varyings[j].clipPosition.z;
+        if (w > 0 && z >= 0) {
+            triangleVisible = true;
+        }
+    }
+
+    if (!triangleVisible) return;
+
+    // Perspective division and viewport transform
+    for (int j = 0; j < 3; ++j) {
+        float w = varyings[j].clipPosition.w;
+        if (w <= 0) continue;  // Skip invalid vertices
+        float invW = 1.0f / w;
+        vec3f ndcPos = {
+            varyings[j].clipPosition.x * invW,
+            varyings[j].clipPosition.y * invW,
+            varyings[j].clipPosition.z * invW
+        };
+
+        screenVertices[j].x = static_cast<int>((ndcPos.x + 1.0f) * 0.5f * framebuffer.getWidth());
+        screenVertices[j].y = static_cast<int>((ndcPos.y + 1.0f) * 0.5f * framebuffer.getHeight());
+        screenVertices[j].z = (ndcPos.z + 1.0f) * 0.5f;
+        screenVertices[j].invW = invW;
+        screenVertices[j].varyings = varyings[j];
+    }
+
+    // Backface culling
+    vec2f p0 = {static_cast<float>(screenVertices[0].x), static_cast<float>(screenVertices[0].y)};
+    vec2f p1 = {static_cast<float>(screenVertices[1].x), static_cast<float>(screenVertices[1].y)};
+    vec2f p2 = {static_cast<float>(screenVertices[2].x), static_cast<float>(screenVertices[2].y)};
+    float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
+    if (signedArea < 0) return;
+
+    drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
+
 }
 
 

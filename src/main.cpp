@@ -1,3 +1,4 @@
+// src/main.cpp
 #include <iostream>
 #include "core/sdl_app.h"
 #include "core/scene.h"
@@ -5,27 +6,18 @@
 int main(int argc, char* argv[]) {
     const int width = 800;
     const int height = 800;
+    const std::string title = "Software Rasterizer (Refactored)";
 
-    // Initialize scene
-    Scene scene(width, height);
-    // Initialize SDL application
-    SDLApp app(width, height, "Software Rasterizer", scene.getThreadPool());
-    if (!app.initialize()) {
+    std::cout << "Starting application..." << std::endl;
+
+    SDLApp app(width, height, title); // Construction and initialization happens here
+
+    if (!app.initialize()) { // Initialization now part of try block
         std::cerr << "Failed to initialize SDLApp" << std::endl;
         return 1;
     }
-
-    if (!scene.loadFromYAML("scenes/scene.yaml")) {
-        std::cerr << "Failed to load scene, using default" << std::endl;
-    }
-
-    // Run the application with a render callback
-    app.run([&scene](float deltaTime) -> const Framebuffer& {
-        scene.update(deltaTime);
-        scene.render();
-        return scene.getFramebuffer();
-    });
-
+    app.run();
+    
     std::cout << "Exiting..." << std::endl;
     return 0;
 }

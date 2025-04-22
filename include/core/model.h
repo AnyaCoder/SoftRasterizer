@@ -4,6 +4,7 @@
 #include <string>
 #include "math/vector.h"
 #include "math/matrix.h"
+#include "core/resource_manager.h"
 #include "core/texture/texture.h"
 
 class Model {
@@ -18,7 +19,6 @@ public:
 
     Model() = default;
 
-    bool loadFromObj(const std::string& filename);
     void calculateTangents();
 
     // Accessors for geometry data
@@ -43,5 +43,7 @@ public:
     std::vector<vec3f> tangents;  
     std::vector<vec3f> bitangents;
     std::vector<Face> faces;
+
+    friend class ResourceManager; 
 
 };

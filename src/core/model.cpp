@@ -48,69 +48,6 @@ const Model::Face& Model::getFace(int index) const {
     return faces[index];
 }
 
-bool Model::loadFromObj(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        return false;
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-
-        std::istringstream iss(line);
-        std::string type;
-        iss >> type;
-
-        if (type == "v") {
-            vec3f v;
-            iss >> v.x >> v.y >> v.z;
-            vertices.push_back(v);
-        }
-        else if (type == "vt") {
-            vec2f vt;
-            iss >> vt.x >> vt.y;
-            uvs.push_back(vt);
-        }
-        else if (type == "vn") {
-            vec3f vn;
-            iss >> vn.x >> vn.y >> vn.z;
-            normals.push_back(vn);
-        }
-        else if (type == "f") {
-            Face face;
-            char sep;
-            int v, t, n, i = 0;
-            
-            while (iss >> v) {
-                face.vertIndex[i] = --v;
-                
-                if (iss.peek() == '/') {
-                    iss >> sep;
-                    if (iss.peek() != '/') {
-                        iss >> t;
-                        face.uvIndex[i] = --t;
-                    }
-                    if (iss.peek() == '/') {
-                        iss >> sep >> n;
-                        face.normIndex[i] = --n;
-                    }
-                }
-                i++;
-            }
-            
-            faces.push_back(face);
-        }
-    }
-
-    file.close();
-    std::cout << "Loaded OBJ: " << filename << " (Vertices: " << numVertices() \
-            << ", Faces: " << numFaces() << ")" << std::endl;
-    // IMPORTANT: Calculate tangents AFTER loading and processing vertices
-    calculateTangents();
-    return true;
-}
-
 
 // --- Tangent Calculation ---
 // Basic implementation - assumes valid UVs and non-degenerate triangles

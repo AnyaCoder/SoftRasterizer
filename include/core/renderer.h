@@ -21,22 +21,26 @@ struct ScreenVertex {
     Varyings varyings;
 };
 
+struct DrawCommand {
+    const Model* model = nullptr;
+    const Material* material = nullptr;
+    mat4 modelMatrix;
+};
+
 class Renderer {
 public:
     Renderer(Framebuffer& fb, ThreadPool& tp);
 
     void setLights(const std::vector<Light>& l);
-    void setCamera(const Camera& cam); // Store view/projection matrices
-
+    void setCameraParams(const mat4& view, const mat4& projection, const vec3f& camPos);
     void clear(const vec3f& color);
-    void drawModel(const Model& model, const Transform& transform, const Material& material);
-
+    void submit(const DrawCommand& command);
 private:
     Framebuffer& framebuffer;
     std::vector<Light> lights;
     mat4 viewMatrix;
-    mat4 projectionMatrix;
-    vec3f cameraPosition;
+    mat4 projMatrix;
+    vec3f currentCameraPosition;
     ThreadPool& threadPool;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
@@ -59,4 +63,6 @@ private:
     }
 
     Varyings interpolateVaryings(float t, const Varyings& start, const Varyings& end, float startInvW, float endInvW) const;
+    void setupShaderUniforms(Shader& shader, const DrawCommand& command);
+    void processFace(const Model& model, const Material& material, Shader& shader, int faceIndex);
 };

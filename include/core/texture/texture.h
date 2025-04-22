@@ -8,7 +8,6 @@ class Texture {
 public:
     virtual ~Texture() = default;
 
-    virtual bool load(const std::string& filename) = 0;
     virtual vec3f sample(float u, float v) const = 0;
 
     bool empty() const {
@@ -21,4 +20,6 @@ public:
 
 protected:
     Texture() = default;
+    virtual bool load(const std::string& filename) = 0;
+    friend class ResourceManager; 
 };
