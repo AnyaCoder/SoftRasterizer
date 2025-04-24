@@ -100,16 +100,16 @@ Transform Transform::combine(const Transform& parent) const {
 // Orients the transform to look at a target point from its current position
 void Transform::lookAt(const vec3f& target, const vec3f& worldUp) {
     vec3f forward = (target - position).normalized();
-    if (forward.length() < 1e-6f) return; // Cannot look at self
+    if (forward.lengthSq() < 1e-6f) return; // Cannot look at self
 
     vec3f right = worldUp.cross(forward).normalized();
     // Handle case where forward is parallel to worldUp
-    if (right.length() < 1e-6f) {
+    if (right.lengthSq() < 1e-6f) {
         // Use a different temporary up vector
         vec3f altUp = (std::abs(worldUp.y) < 0.99f) ? vec3f(0.0f, 1.0f, 0.0f) : vec3f(0.0f, 0.0f, 1.0f);
         if(std::abs(forward.y - altUp.y) < 1e-6f) altUp = vec3f(1.0f, 0.0f, 0.0f); // Another fallback
         right = altUp.cross(forward).normalized();
-        if (right.length() < 1e-6f) right = vec3f(1.0f, 0.0f, 0.0f); // Final fallback
+        if (right.lengthSq() < 1e-6f) right = vec3f(1.0f, 0.0f, 0.0f); // Final fallback
     }
 
     vec3f up = forward.cross(right).normalized(); // Orthonormal up

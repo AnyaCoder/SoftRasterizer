@@ -102,7 +102,7 @@ void Model::calculateTangents() {
         vec3f& t = tangents[i];
         vec3f& b = bitangents[i];
 
-        if (t.length() > 0 && n.length() > 0) {
+        if (t.lengthSq() > 0 && n.lengthSq() > 0) {
             // Gram-Schmidt orthogonalize: t = normalize(t - n * dot(n, t))
             t = (t - n * n.dot(t)).normalized();
 

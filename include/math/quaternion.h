@@ -6,9 +6,12 @@
 #include <cmath>
 #include <vector>
 
-constexpr float MY_PI = 3.14159265f;
-constexpr float Q_DEG2RAD = MY_PI / 180.0f;
-constexpr float Q_RAD2DEG = 180.0f / MY_PI;
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+constexpr float Q_DEG2RAD = static_cast<float>(M_PI) / 180.0f;
+constexpr float Q_RAD2DEG = 180.0f / static_cast<float>(M_PI);
 
 struct mat3;
 

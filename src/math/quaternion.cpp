@@ -132,7 +132,7 @@ void quat::toAxisAngle(vec3f& axis, float& angleRad) const {
         // If angle is close to 0, axis doesn't matter much
         // If angle is close to pi, direction can be derived but might be unstable
         axis = vec3f(x, y, z); // Use raw vector part
-        if(axis.length() < 1e-6f) axis = vec3f(0.0f, 0.0f, 1.0f); // Default if zero vector
+        if(axis.lengthSq() < 1e-6f) axis = vec3f(0.0f, 0.0f, 1.0f); // Default if zero vector
         else axis = axis.normalized();
 
     } else {
@@ -160,7 +160,7 @@ vec3f quat::toEulerAnglesZYX() const {
     // Pitch (x-axis rotation)
     float sinp = 2.0f * (qn.w * qn.x - qn.y * qn.z);
     if (std::abs(sinp) >= 1.0f) // Use 90 degrees if out of range
-        anglesRad.x = std::copysignf(MY_PI / 2.0f, sinp);
+        anglesRad.x = std::copysignf(M_PI / 2.0f, sinp);
     else
         anglesRad.x = std::asinf(sinp);
 

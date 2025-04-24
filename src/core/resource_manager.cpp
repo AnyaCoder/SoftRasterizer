@@ -3,7 +3,7 @@
 #include "core/texture/tga_texture.h"
 #include "core/texture/dds_texture.h"
 #include "core/model.h"
-#include "core/blinn_phong_shader.h" // Example shader include
+#include "core/blinn_phong_shader.h"
 
 #include <iostream>
 #include <fstream>

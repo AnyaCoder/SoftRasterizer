@@ -19,5 +19,6 @@ int main(int argc, char* argv[]) {
     app.run();
     
     std::cout << "Exiting..." << std::endl;
+
     return 0;
 }

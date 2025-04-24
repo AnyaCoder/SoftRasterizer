@@ -1,6 +1,7 @@
 // include/math/vector.h
 #pragma once
 #include <vector>
+#include <iostream>
 
 template<typename T>
 struct Vector2 {
@@ -42,8 +43,13 @@ struct Vector3 {
             x * v.y - y * v.x
         );
     }
-    float length() const { return sqrtf(x * x + y * y + z * z); }
-    Vector3 normalized() const { float l = length(); return Vector3(x / l, y / l, z / l); }
+    float lengthSq() const { return x * x + y * y + z * z; }
+    void normalize() { float invL = 1.0f / sqrtf(lengthSq());  x *= invL; y *= invL; z *= invL; }
+    Vector3 normalized() const { float invL = 1.0f / sqrtf(lengthSq()); return Vector3(x * invL, y * invL, z * invL); }
+    friend std::ostream& operator<< (std::ostream& os, const Vector3& v) {
+        os << "vec3f: (" << v.x << ", " << v.y << ", " << v.z << ")" << std::endl;
+        return os;
+    }
 };
 
 template<typename T>

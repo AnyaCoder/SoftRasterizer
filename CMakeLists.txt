@@ -34,7 +34,7 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp
 )
 
-# 创建 ImGui 动态库
+# 创建 ImGui 静态库
 add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PRIVATE ${SDL2_INCLUDE_DIRS})
 target_include_directories(imgui PUBLIC ${IMGUI_INCLUDE_DIRS}) # Keep PUBLIC for ImGui headers

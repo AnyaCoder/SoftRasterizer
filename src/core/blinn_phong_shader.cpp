@@ -124,7 +124,7 @@ bool BlinnPhongShader::fragment(const Varyings& input, vec3f& outColor) {
             L = -light.direction.normalized(); // Direction TO the light
         } else if (light.type == LightType::POINT) {
             vec3f lightVec = light.position - input.worldPosition;
-            float dist = lightVec.length();
+            float dist = sqrtf(lightVec.lengthSq());
             L = lightVec.normalized();
             // Example simple distance attenuation (inverse square)
             // attenuation = 1.0f / (1.0f + 0.1f * dist + 0.01f * dist * dist); // Adjust constants as needed

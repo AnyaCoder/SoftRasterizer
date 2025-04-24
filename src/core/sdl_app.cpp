@@ -22,6 +22,10 @@ SDLApp::SDLApp(int w, int h, const std::string& t)
 
 
 SDLApp::~SDLApp() {
+    if (mouseLookActive) {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     if (ImGui::GetCurrentContext()) {
@@ -62,11 +66,15 @@ bool SDLApp::initialize() {
         std::cerr << "SDL_CreateTexture Error: " << SDL_GetError() << std::endl;
         return false;
     }
-   
+    
+    if (SDL_SetRelativeMouseMode(SDL_TRUE) != 0) {
+        std::cerr << "Error enabling relative mouse mode: " << SDL_GetError() << std::endl;
+    }
+
     // 初始化ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // 启用Docking
     ImGui::StyleColorsDark();
     // 设置编辑器风格主题
@@ -102,16 +110,112 @@ bool SDLApp::initialize() {
     return true;
 }
 
+
 void SDLApp::handleEvents() {
     SDL_Event event;
+    bool imguiCapturedMouseThisPoll = false;
+    ImGuiIO& io = ImGui::GetIO();
+
     while (SDL_PollEvent(&event)) {
-        ImGui_ImplSDL2_ProcessEvent(&event); // Pass events to ImGui
+        ImGui_ImplSDL2_ProcessEvent(&event); 
+
+        // Track if ImGui wanted the mouse at any point during polling
+        if (io.WantCaptureMouse) {
+            imguiCapturedMouseThisPoll = true;
+        }
+
+        // --- Keyboard Handling ---
+        // Only process game key events if ImGui doesn't want keyboard focus NOW
+        if (!io.WantCaptureKeyboard) {
+             switch (event.type) {
+                case SDL_KEYDOWN:
+                    // std::cout << "Key Down (Game): " << SDL_GetKeyName(event.key.keysym.sym) << std::endl;
+                    if (event.key.repeat == 0) {
+                        keysPressed.insert(event.key.keysym.scancode);
+
+                        // Allow Escape toggle regardless of ImGui focus? (User choice)
+                        if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+                            mouseLookActive = !mouseLookActive;
+                            // State will be fully applied later
+                            std::cout << "Escape Toggle: mouseLookActive = " << mouseLookActive << std::endl;
+                        }
+                    }
+                    break;
+                case SDL_KEYUP:
+                     // std::cout << "Key Up (Game): " << SDL_GetKeyName(event.key.keysym.sym) << std::endl;
+                    keysPressed.erase(event.key.keysym.scancode);
+                    break;
+             }
+        } else {
+            // If ImGui wants keyboard, clear our key state for this frame to prevent movement
+            // Doing it here ensures keys pressed *before* focus change are cleared
+            // keysPressed.clear(); // Maybe clear *after* the loop? See below.
+        }
+
+        // --- Quit Event ---
         if (event.type == SDL_QUIT) {
             quit = true;
         }
-        // Add other event handling here if needed
+    } // End while SDL_PollEvent
+
+    if (io.WantCaptureKeyboard) {
+        // std::cout << "ImGui wants keyboard focus, clearing keysPressed." << std::endl;
+        keysPressed.clear();
+    }
+
+
+    // Apply mouse mode state based on final status for the frame
+    bool shouldBeRelative = mouseLookActive && !imguiCapturedMouseThisPoll; // Only relative if active AND ImGui didn't grab mouse during polling
+    bool currentRelativeState = SDL_GetRelativeMouseMode();
+
+    if (shouldBeRelative != currentRelativeState) {
+        if (SDL_SetRelativeMouseMode(shouldBeRelative ? SDL_TRUE : SDL_FALSE) == 0) {
+            SDL_ShowCursor(shouldBeRelative ? SDL_DISABLE : SDL_ENABLE);
+        } else {
+            std::cerr << "Error setting relative mouse mode!" << std::endl;
+        }
+    } else if (shouldBeRelative && SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE) {
+        SDL_ShowCursor(SDL_DISABLE);
+    } else if (!shouldBeRelative && SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
+        SDL_ShowCursor(SDL_ENABLE);
+    }
+
+} // End handleEvents
+
+// --- New Method ---
+void SDLApp::processInput(float dt) {
+    // --- Mouse Look ---
+    if (mouseLookActive) {
+        int mouseXRel, mouseYRel;
+        SDL_GetRelativeMouseState(&mouseXRel, &mouseYRel); // Get cumulative motion since last call
+
+        if (mouseXRel != 0 || mouseYRel != 0) {
+            scene.getCamera().processMouseMovement(
+                -static_cast<float>(mouseXRel),
+                -static_cast<float>(mouseYRel), // Invert Y-axis for typical FPS look
+                cameraLookSensitivity // No dt scaling for mouse look usually
+            );
+        }
+    }
+
+    // --- Keyboard Movement ---
+    vec3f moveDir = {0.0f, 0.0f, 0.0f};
+    if (keysPressed.count(SDL_SCANCODE_W)) moveDir.z += 1.0f; // Forward
+    if (keysPressed.count(SDL_SCANCODE_S)) moveDir.z -= 1.0f; // Backward
+    if (keysPressed.count(SDL_SCANCODE_A)) moveDir.x -= 1.0f; // Left
+    if (keysPressed.count(SDL_SCANCODE_D)) moveDir.x += 1.0f; // Right
+    if (keysPressed.count(SDL_SCANCODE_SPACE)) moveDir.y += 1.0f; // Up
+    if (keysPressed.count(SDL_SCANCODE_LCTRL) || keysPressed.count(SDL_SCANCODE_RCTRL)) moveDir.y -= 1.0f; // Down
+    
+    if (moveDir.lengthSq() > 1.0f) {
+        moveDir.normalize();
+    }
+   
+    if (moveDir.x != 0.0f || moveDir.y != 0.0f || moveDir.z != 0.0f) {
+        scene.getCamera().processKeyboardMovement(moveDir, dt, cameraMoveSpeed);
     }
 }
+
 
 void SDLApp::updateFPS() {
     Uint32 currentFrameTime = SDL_GetTicks();
@@ -135,7 +239,7 @@ void SDLApp::update(float dt) {
 
 // New function to encapsulate rendering logic
 void SDLApp::renderFrame() {
-    renderer.clear(vec3f(0.5f, 0.5f, 0.5f));
+    renderer.clear(vec3f(0.2f, 0.2f, 0.2f));
 
     renderer.setCameraParams(scene.getCamera().getViewMatrix(),
                              scene.getCamera().getProjectionMatrix(),
@@ -144,7 +248,7 @@ void SDLApp::renderFrame() {
 
     scene.render(renderer);
 
-    framebuffer.flipVertical();
+    // framebuffer.flipVertical();
 }
 
 
@@ -175,17 +279,18 @@ void SDLApp::renderImGui() {
     ImGui::Begin("Inspector");
     if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
         vec3f position = scene.getCamera().getPosition();
-        vec3f target = scene.getCamera().getTarget();
-        vec3f rotation = scene.getCamera().getTransform().rotation.toEulerAnglesZYX(); // Get Euler angles
+        vec3f rotation = scene.getCamera().getTransform().rotation.toEulerAnglesZYX();
+        ImGui::InputFloat3("Position##Cam", &position.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputFloat3("Rotation##Cam", &rotation.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+        ImGui::DragFloat("Move Speed", &cameraMoveSpeed, 0.1f, 0.1f, 100.0f);
+        ImGui::DragFloat("Look Sensitivity", &cameraLookSensitivity, 0.01f, 0.01f, 1.0f);
 
-        if (ImGui::DragFloat3("Position##Cam", &position.x, 0.1f)) {
-            scene.getCamera().setPosition(position);
-        }
-        if (ImGui::DragFloat3("Target##Cam", &target.x, 0.1f)) {
-            scene.getCamera().setTarget(target); // Make sure this updates the view matrix
-        }
-        if (ImGui::DragFloat3("Rotation (Euler)##Cam", &rotation.x, 1.0f)) { // Euler control
-            scene.getCamera().setRotation(rotation); // Camera needs to handle this correctly
+        bool mouseLookStatus = mouseLookActive; // Copy status for checkbox
+        if (ImGui::Checkbox("Mouse Look Active (Esc)", &mouseLookStatus)) {
+            // Manually toggle if checkbox is clicked (in addition to Esc key)
+            mouseLookActive = mouseLookStatus;
+            SDL_SetRelativeMouseMode(mouseLookActive ? SDL_TRUE : SDL_FALSE);
+            SDL_ShowCursor(mouseLookActive ? SDL_DISABLE : SDL_ENABLE);
         }
     }
     ImGui::End(); // End Inspector
@@ -196,6 +301,7 @@ void SDLApp::renderImGui() {
     ImGui::Text("Frame Time: %.3f ms", deltaTime * 1000.0f);
     ImGui::Text("Resolution: %d x %d", width, height);
     ImGui::Text("Threads: %d", threadPool.getNumThreads());
+    ImGui::Text(mouseLookActive ? "Mouse Look: ON" : "Mouse Look: OFF (Press Esc)");
     ImGui::End(); // End Status
 
     ImGui::Render();
@@ -230,14 +336,14 @@ void SDLApp::updateTextureFromFramebuffer() {
             auto& pixels = framebuffer.getPixels();
             for (int y = startY; y < endY; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    int framebufferY = y;
+                    int framebufferY = height - 1 - y;
                     const vec3f& color = pixels[framebufferY * width + x];
                     Uint8* dstPixel = dstPixels + y * pitch + x * 3;
                     dstPixel[0] = static_cast<Uint8>(std::round(color.x * 255.0f));
                     dstPixel[1] = static_cast<Uint8>(std::round(color.y * 255.0f));
                     dstPixel[2] = static_cast<Uint8>(std::round(color.z * 255.0f));
                 }
-            }
+            }   
         });
     }
     threadPool.waitForCompletion();
@@ -265,6 +371,8 @@ void SDLApp::run() {
         handleEvents();
 
         updateFPS();
+
+        processInput(deltaTime);
 
         update(deltaTime);
 
