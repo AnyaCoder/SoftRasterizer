@@ -5,7 +5,6 @@
 #include <mutex>
 #include "math/vector.h"
 #include "core/texture/texture.h"
-#include "core/vertex.h"
 #include "core/threadpool.h"
 
 

@@ -138,6 +138,41 @@ void Renderer::submit(const DrawCommand& command) {
 #endif
 }
 
+ScreenSpaceGradients calcSSGradients(const ScreenVertex v[3]) {
+    ScreenSpaceGradients grads;
+
+    // Screen space positions
+    float x0 = static_cast<float>(v[0].x), y0 = static_cast<float>(v[0].y);
+    float x1 = static_cast<float>(v[1].x), y1 = static_cast<float>(v[1].y);
+    float x2 = static_cast<float>(v[2].x), y2 = static_cast<float>(v[2].y);
+
+    // Attributes needed for chain rule (perspective correct)
+    vec2f uv0_over_w = v[0].varyings.uv * v[0].invW;
+    vec2f uv1_over_w = v[1].varyings.uv * v[1].invW;
+    vec2f uv2_over_w = v[2].varyings.uv * v[2].invW;
+    float invW0 = v[0].invW;
+    float invW1 = v[1].invW;
+    float invW2 = v[2].invW;
+
+    // Inverse denominator (2 * signed area)
+    float delta = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+
+    // Handle degenerate triangle case (area is zero or very small)
+    if (std::abs(delta) < 1e-9f) {
+        // Return zero gradients for degenerate triangles
+        return grads; // All members already initialized to zero
+    }
+    float invDelta = 1.0f / delta;
+
+    // Calculate gradients using the standard formula
+    grads.dUVoverW_dX = ((uv1_over_w - uv0_over_w) * (y2 - y0) - (uv2_over_w - uv0_over_w) * (y1 - y0)) * invDelta;
+    grads.dUVoverW_dY = ((uv2_over_w - uv0_over_w) * (x1 - x0) - (uv1_over_w - uv0_over_w) * (x2 - x0)) * invDelta;
+    grads.dInvW_dX = ((invW1 - invW0) * (y2 - y0) - (invW2 - invW0) * (y1 - y0)) * invDelta;
+    grads.dInvW_dY = ((invW2 - invW0) * (x1 - x0) - (invW1 - invW0) * (x2 - x0)) * invDelta;
+
+    return grads;
+}
+
 
 void Renderer::processFace(const Model& model, const Material& material, Shader& shader, int faceIndex) {
     Model::Face face = model.getFace(faceIndex);
@@ -191,12 +226,12 @@ void Renderer::processFace(const Model& model, const Material& material, Shader&
     float signedArea = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
     if (signedArea < 0) return;
 
-    drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material);
-
+    auto gradients = calcSSGradients(screenVertices);
+    drawTriangle(screenVertices[0], screenVertices[1], screenVertices[2], material, gradients);
 }
 
 
-// --- Rasterization (Modified Framebuffer logic moved/adapted here) ---
+// --- Ras  terization (Modified Framebuffer logic moved/adapted here) ---
 
 void Renderer::drawLine(int x0, int y0, int x1, int y1, const vec3f& color) {
 
@@ -230,7 +265,8 @@ void Renderer::drawLine(int x0, int y0, int x1, int y1, const vec3f& color) {
     }
 }
 
-void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material) {
+void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, 
+        const Material& material, const ScreenSpaceGradients& gradients) {
     // Sort vertices by y-coordinate (v0.y <= v1.y <= v2.y)
     if (v0.y > v1.y) { std::swap(v0, v1); }
     if (v0.y > v2.y) { std::swap(v0, v2); }
@@ -241,18 +277,20 @@ void Renderer::drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, c
 
     // Draw top part (v0.y to v1.y) - Flat bottom triangle
     if (v0.y < v1.y) {
-        drawScanlines(v0.y, v1.y, v0, v2, v0, v1, material);
+        drawScanlines(v0.y, v1.y, v0, v2, v0, v1, material, gradients);
     }
 
     // Draw bottom part (v1.y to v2.y) - Flat top triangle
     if (v1.y < v2.y) {
-        drawScanlines(v1.y, v2.y, v1, v2, v0, v2, material); // Note edge AC is still v0 -> v2
+        drawScanlines(v1.y, v2.y, v1, v2, v0, v2, material, gradients); // Note edge AC is still v0 -> v2
     }
 }
 
 
-void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, const ScreenVertex& vEndA,
-            const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material) {
+void Renderer::drawScanlines(int yStart, int yEnd, 
+        const ScreenVertex& vStartA, const ScreenVertex& vEndA,
+        const ScreenVertex& vStartB, const ScreenVertex& vEndB, 
+        const Material& material, const ScreenSpaceGradients& gradients) {
 
     float dyA = static_cast<float>(vEndA.y - vStartA.y);
     float dyB = static_cast<float>(vEndB.y - vStartB.y);
@@ -310,9 +348,14 @@ void Renderer::drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, 
             float currentInvW = invWa + (invWb - invWa) * tHoriz;
             // Interpolate varyings perspective-correctly across the scanline
             Varyings finalVaryings = interpolateVaryings(tHoriz, varyingsA, varyingsB, invWa, invWb);
+
+            float currentW = 1.0f / currentInvW;
+            vec2f uv_ddx = (gradients.dUVoverW_dX - finalVaryings.uv * gradients.dInvW_dX) * currentW;
+            vec2f uv_ddy = (gradients.dUVoverW_dY - finalVaryings.uv * gradients.dInvW_dY) * currentW;
+
             // --- Fragment Shader ---
             vec3f fragmentColor;
-            if (material.shader->fragment(finalVaryings, fragmentColor)) {
+            if (material.shader->fragment(finalVaryings, fragmentColor, uv_ddx, uv_ddy)) {
                 // Write to framebuffer if fragment not discarded
                 framebuffer.setPixel(x, y, fragmentColor, depth);
             }

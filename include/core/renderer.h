@@ -21,6 +21,15 @@ struct ScreenVertex {
     Varyings varyings;
 };
 
+// Struct to hold per-triangle ACCURATE gradients for perspective-correct attributes
+struct ScreenSpaceGradients {
+    vec2f dUVoverW_dX = {0.0f, 0.0f};
+    vec2f dUVoverW_dY = {0.0f, 0.0f};
+    float dInvW_dX = 0.0f;
+    float dInvW_dY = 0.0f;
+    // Add gradients for other attributes if needed (e.g., normals)
+};
+
 struct DrawCommand {
     const Model* model = nullptr;
     const Material* material = nullptr;
@@ -44,9 +53,9 @@ private:
     ThreadPool& threadPool;
 
     void drawLine(int x0, int y0, int x1, int y1, const vec3f& color);
-    void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material);
+    void drawTriangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Material& material, const ScreenSpaceGradients& gradients);
     void drawScanlines(int yStart, int yEnd, const ScreenVertex& vStartA, const ScreenVertex& vEndA,
-        const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material);
+        const ScreenVertex& vStartB, const ScreenVertex& vEndB, const Material& material, const ScreenSpaceGradients& gradients);
    
     template <typename T>
     T perspectiveCorrectInterpolate(float t, const T& startVal, const T& endVal, float startInvW, float endInvW) const {

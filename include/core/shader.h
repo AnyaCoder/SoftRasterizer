@@ -79,5 +79,6 @@ public:
     // Processes a single fragment
     // Input: Interpolated varyings
     // Output: Final color (or discard) + boolean indicating if pixel should be written
-    virtual bool fragment(const Varyings& input, vec3f& outColor) = 0;
+    virtual bool fragment(const Varyings& input, vec3f& outColor,
+        const vec2f& uv_ddx, const vec2f& uv_ddy) = 0;
 };

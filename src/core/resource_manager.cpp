@@ -36,7 +36,8 @@ std::shared_ptr<Texture> ResourceManager::loadTexture(const std::string& filenam
     }
 
     if (texture && texture->load(filename)) {
-        std::cout << "\033[32m Successfully loaded texture: " << filename << " (" << texture->width << "x" << texture->height << ") \033[0m" << std::endl;
+        std::cout << "\033[32m Successfully loaded texture (MipLevel 0): " << filename \
+            << " (" << texture->mipLevels[0].width << "x" << texture->mipLevels[0].height << ") \033[0m" << std::endl;
         textureCache[filename] = texture; // Add to cache on success
         return texture;
     } else {

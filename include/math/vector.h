@@ -15,8 +15,8 @@ struct Vector2 {
     Vector2 operator*(T s) const { return Vector2(x * s, y * s); }
     Vector2& operator*=(T s) { x *= s; y *= s; return *this; }
     T dot(const Vector2& v) const { return x * v.x + y * v.y; }
-    float length() const { return sqrtf(x * x + y * y); }
-    Vector2 normalized() const { float l = length(); return Vector2(x / l, y / l); }
+    float lengthSq() const { return x * x + y * y; }
+    Vector2 normalized() const { float l = sqrtf(lengthSq()); return Vector2(x / l, y / l); }
 };
 
 template<typename T>

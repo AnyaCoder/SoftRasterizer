@@ -1,8 +1,8 @@
 ---
 title: Implementing FPS Camera Movement in a 3D Application
 date: 2025-04-24
-tags: [FPS, Camera, 3D, SDL, C++]
-categories: [Game Development]
+tags: [FPS, Graphics, Camera, 3D, SDL, C++]
+categories: [Computer Graphics]
 ---
 
 # Implementing FPS Camera Movement in a 3D Application
@@ -321,4 +321,10 @@ while (!quit) {
 - **Smoothing**: Add interpolation for smoother mouse look.
 - **Configurable Keybindings**: Allow users to remap WASD controls.
 - **Camera Shake**: Implement for visual effects (e.g., explosions).
-- **Field of View Adjustment**:
+- **Field of View Adjustment**: Add dynamic FOV for sprinting or zooming.
+
+## Conclusion
+
+This FPS camera implementation provides a robust foundation for 3D applications, with smooth mouse look, intuitive keyboard movement, and seamless integration with SDL and ImGui. By leveraging yaw/pitch orientation, quaternion rotations, and optimized math utilities, the system ensures performance and stability. The provided codebase is extensible, making it easy to add features like collision detection or advanced input handling.
+
+For further details, refer to the source files (`camera.h/cpp`, `sdl_app.h/cpp`, `scene.cpp`) and experiment with the scene configuration (`scene.yaml`) to customize the camera’s behavior.
